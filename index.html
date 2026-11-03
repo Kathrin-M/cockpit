@@ -58,7 +58,7 @@ tr.link{cursor:pointer}tr.link:hover{background:var(--light)}
 .node.sel{box-shadow:0 0 0 3px rgba(56,103,132,.35)}
 .node.company,.node.area{background:var(--brand);color:#fff;border-color:var(--brand)}
 .node.area.red{border-color:var(--red);box-shadow:0 0 0 2px var(--red)}
-.node .t{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;line-height:1.15}.node .lv{display:block;font-size:8.5px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;opacity:.65}.node.step{border-left-width:6px}#mapwrap{cursor:grab}#mapwrap.pan{cursor:grabbing;user-select:none}
+.node .t{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;line-height:1.15}.node .lv{display:block;font-size:8.5px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;opacity:.65}.node.step{border-left-width:6px}#mapwrap{cursor:grab}.node{cursor:move}.node.dt{outline:3px dashed var(--leaf);outline-offset:2px}#mapwrap.pan{cursor:grabbing;user-select:none}
 .node .c{font-size:10.5px;font-weight:700;color:#6b7c88;white-space:nowrap}
 .node.company .c,.node.area .c{color:#d6e5ee}
 .node .tg{width:18px;height:18px;border-radius:50%;background:var(--light);color:var(--brand);text-align:center;line-height:18px;font-size:11px;flex:none}
@@ -299,7 +299,7 @@ function renderMap(v){
     <button class="btn ghost" data-act="collapse">Alles zuklappen</button>
     <button class="btn ${onlyGaps?"red":"ghost"}" data-act="gaps">Nur Lücken anzeigen</button>
     <input id="q" placeholder="Suchen …" value="${esc(search)}" style="max-width:240px">
-    <span class="muted">Ziehen = Mindmap verschieben · Klick = öffnen · Doppelklick = auf-/zuklappen · Rahmen: <span class="dot red"></span> Lücke <span class="dot orange"></span> ausgefüllt, nicht bestätigt <span class="dot green"></span> vollständig</span>
+    <span class="muted">Kachel ziehen = Reihenfolge ändern / neu zuordnen · Hintergrund ziehen = verschieben · Klick = öffnen · Doppelklick = auf-/zuklappen · Rahmen: <span class="dot red"></span> Lücke <span class="dot orange"></span> ausgefüllt, nicht bestätigt <span class="dot green"></span> vollständig</span>
   </div><div id="mapwrap"><div id="map"></div></div>`;
   const pos={};let y=0,maxd=0;
   const q=search.trim().toLowerCase();
@@ -677,10 +677,33 @@ $("#fileJson").addEventListener("change",async e=>{
 });
 init();
 
-(()=>{let st=null,moved=false;
-document.addEventListener("mousedown",e=>{const w=e.target.closest("#mapwrap");if(!w||e.target.closest(".tg"))return;st={w,x:e.clientX,y:e.clientY,l:w.scrollLeft,t:w.scrollTop};moved=false});
-document.addEventListener("mousemove",e=>{if(!st)return;const dx=e.clientX-st.x,dy=e.clientY-st.y;if(!moved&&Math.abs(dx)+Math.abs(dy)<6)return;moved=true;st.w.classList.add("pan");st.w.scrollLeft=st.l-dx;st.w.scrollTop=st.t-dy});
-document.addEventListener("mouseup",()=>{if(st){st.w.classList.remove("pan");st=null}});
+(()=>{let st=null,moved=false,dn=null,ghost=null,hi=null;
+const clr=()=>{if(hi){hi.classList.remove("dt");hi=null}};
+document.addEventListener("mousedown",e=>{if(e.button||tab!=="map")return;const w=e.target.closest("#mapwrap");if(!w||e.target.closest(".tg"))return;moved=false;
+  const nd=e.target.closest(".node");
+  if(nd&&nodes[nd.dataset.id]&&nodes[nd.dataset.id].parent){dn={id:nd.dataset.id,x:e.clientX,y:e.clientY,el:nd};return}
+  st={w,x:e.clientX,y:e.clientY,l:w.scrollLeft,t:w.scrollTop}});
+document.addEventListener("mousemove",e=>{
+  if(dn){if(!moved&&Math.abs(e.clientX-dn.x)+Math.abs(e.clientY-dn.y)<8)return;moved=true;
+    if(!ghost){ghost=dn.el.cloneNode(true);ghost.style.cssText="position:fixed;pointer-events:none;opacity:.8;z-index:60;width:226px";document.body.appendChild(ghost);dn.el.style.opacity=".35"}
+    ghost.style.left=(e.clientX-100)+"px";ghost.style.top=(e.clientY-18)+"px";
+    ghost.style.display="none";const t=document.elementFromPoint(e.clientX,e.clientY);ghost.style.display="";
+    const tn=t&&t.closest(".node");clr();if(tn&&tn!==dn.el){hi=tn;tn.classList.add("dt")}
+    const w=$("#mapwrap");if(w){const r=w.getBoundingClientRect();if(e.clientY>r.bottom-40)w.scrollTop+=14;if(e.clientY<r.top+40)w.scrollTop-=14}
+    return}
+  if(!st)return;const dx=e.clientX-st.x,dy=e.clientY-st.y;if(!moved&&Math.abs(dx)+Math.abs(dy)<6)return;moved=true;st.w.classList.add("pan");st.w.scrollLeft=st.l-dx;st.w.scrollTop=st.t-dy});
+document.addEventListener("mouseup",e=>{
+  if(st){st.w.classList.remove("pan");st=null}
+  if(dn){const d=nodes[dn.id];const el=dn.el;el.style.opacity="";if(ghost){ghost.remove();ghost=null}clr();
+    if(moved){const t0=document.elementFromPoint(e.clientX,e.clientY);const tn=t0&&t0.closest(".node");
+      if(tn&&tn.dataset.id!==d.id){const t=nodes[tn.dataset.id];
+        if(descIds(d.id).includes(t.id)){toast("Geht nicht: Die Kachel kann nicht in ihre eigene Unterkachel.")}
+        else if(t.level===d.level){const r=tn.getBoundingClientRect();const after=e.clientY>r.top+r.height/2;
+          const list=kids(t.parent).filter(x=>x.id!==d.id);let i=list.findIndex(x=>x.id===t.id);if(after)i++;
+          d.parent=t.parent;list.splice(i,0,d);list.forEach((x,k)=>{x.ord=k;save(x)});refresh();toast("Reihenfolge geändert.")}
+        else if(LORD.indexOf(t.level)===LORD.indexOf(d.level)-1){d.parent=t.id;d.ord=kids(t.id).filter(x=>x.id!==d.id).length;save(d);collapsed.delete(t.id);refresh();toast("Verschoben unter „"+t.name+"“.")}
+        else toast("Geht hier nicht: Auf eine gleiche Ebene (Reihenfolge) oder auf die Kachel darüber (neu zuordnen) ziehen.")}}
+    dn=null}});
 document.addEventListener("click",e=>{if(moved){e.stopPropagation();e.preventDefault();moved=false}},true);
 })();
 </script>
