@@ -1,0 +1,476 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cockpit – Ist-Aufnahme</title>
+<style>
+:root{--brand:#386784;--leaf:#95C11F;--sage:#82B0A9;--light:#EEF4F2;--red:#D9534F;--orange:#E8892B;--grey:#B8B8B8;--text:#25384a;}
+*{box-sizing:border-box}
+body{margin:0;font-family:Arial,Helvetica,sans-serif;color:var(--text);background:#fff;font-size:14px}
+header{display:flex;align-items:center;gap:16px;padding:10px 20px;border-bottom:1px solid #dde6e3;background:#fff;flex-wrap:wrap}
+.logo{font-weight:800;font-size:20px;color:var(--brand);text-transform:uppercase}.logo span{color:var(--leaf);text-transform:none}
+.sub{color:#6b7c88;font-size:12px}
+.badge{padding:3px 10px;border-radius:99px;font-size:12px;font-weight:700;color:#fff}
+.b-red{background:var(--red)}.b-or{background:var(--orange)}.b-gr{background:#6ea015}.b-live{background:#6ea015}.b-loc{background:var(--orange)}
+.spacer{flex:1}
+nav{display:flex;gap:4px;padding:8px 20px;background:var(--light);border-bottom:1px solid #dde6e3;flex-wrap:wrap}
+nav button{border:0;background:transparent;padding:8px 14px;border-radius:99px;font-weight:700;color:var(--brand);cursor:pointer;font-size:13px}
+nav button.on{background:var(--brand);color:#fff}
+main{padding:18px 20px;max-width:100%}
+button.btn{background:var(--brand);color:#fff;border:0;padding:8px 14px;border-radius:8px;font-weight:700;cursor:pointer;font-size:13px}
+button.btn.ghost{background:#fff;color:var(--brand);border:1px solid var(--brand)}
+button.btn.leaf{background:var(--leaf);color:#1c2b00}
+button.btn.red{background:var(--red)}
+button.btn:disabled{opacity:.5}
+.bar{display:flex;gap:8px;align-items:center;margin-bottom:12px;flex-wrap:wrap}
+input[type=text],input:not([type]),select,textarea{font:inherit;border:1px solid #c5d3cf;border-radius:6px;padding:6px 8px;background:#fff;color:var(--text);width:100%}
+textarea{min-height:56px;resize:vertical}
+.status{padding:14px 18px;border-radius:12px;font-weight:800;font-size:17px;color:#fff;margin-bottom:16px}
+.status.red{background:var(--red)}.status.green{background:#6ea015}
+table{border-collapse:collapse;width:100%}
+th{background:var(--brand);color:#fff;text-align:left;padding:8px;font-size:12px}
+td{padding:7px 8px;border-bottom:1px solid #e6eeeb;vertical-align:top}
+tr.link{cursor:pointer}tr.link:hover{background:var(--light)}
+.pbar{height:8px;background:#e6eeeb;border-radius:99px;overflow:hidden;min-width:90px}.pbar div{height:100%;background:var(--leaf)}
+.dot{display:inline-block;width:12px;height:12px;border-radius:50%;vertical-align:middle}
+.dot.red{background:var(--red)}.dot.orange{background:var(--orange)}.dot.green{background:var(--leaf)}
+.chip{display:inline-block;background:#fbe3e2;color:#a12622;border-radius:99px;padding:1px 8px;font-size:11px;margin:1px 2px 1px 0}
+#mapwrap{position:relative;overflow:auto;border:1px solid #dde6e3;border-radius:12px;height:calc(100vh - 215px);background:#fbfdfc}
+#map{position:relative}
+#map svg{position:absolute;left:0;top:0;pointer-events:none}
+.node{position:absolute;width:226px;height:36px;border-radius:10px;border:2.5px solid var(--grey);background:#fff;padding:0 8px;display:flex;align-items:center;gap:6px;cursor:pointer;font-size:12.5px;font-weight:700;color:var(--text);box-shadow:0 1px 3px rgba(0,0,0,.08)}
+.node.red{border-color:var(--red)}.node.orange{border-color:var(--orange)}.node.green{border-color:var(--leaf)}
+.node.sel{box-shadow:0 0 0 3px rgba(56,103,132,.35)}
+.node.company,.node.area{background:var(--brand);color:#fff;border-color:var(--brand)}
+.node.area.red{border-color:var(--red);box-shadow:0 0 0 2px var(--red)}
+.node .t{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.node .c{font-size:10.5px;font-weight:700;color:#6b7c88;white-space:nowrap}
+.node.company .c,.node.area .c{color:#d6e5ee}
+.node .tg{width:18px;height:18px;border-radius:50%;background:var(--light);color:var(--brand);text-align:center;line-height:18px;font-size:11px;flex:none}
+.node .rd{width:8px;height:8px;border-radius:50%;background:var(--red);flex:none}
+#panel{position:fixed;right:0;top:0;bottom:0;width:480px;max-width:100%;background:#fff;border-left:1px solid #c5d3cf;box-shadow:-6px 0 18px rgba(0,0,0,.1);transform:translateX(105%);transition:transform .2s;overflow:auto;padding:16px;z-index:20}
+#panel.open{transform:none}
+#panel h3,h3{margin:14px 0 6px;color:var(--brand);font-size:13px;text-transform:uppercase;letter-spacing:.06em}
+.q{margin-bottom:10px}.q label{display:block;font-weight:700;font-size:12.5px;margin-bottom:3px}
+.q.req.empty label{color:var(--red)}.q.req.empty textarea{border-color:var(--red);background:#fff6f5}
+.req-tag{font-size:10px;color:#6b7c88;font-weight:400}
+.row{display:flex;gap:6px;margin-bottom:6px;align-items:center}
+.row>*{flex:1}.row>.sm{flex:none;width:auto}
+.crumb{font-size:12px;color:#6b7c88;margin-bottom:6px}
+.note{background:#fff8e6;border:1px solid #f1deaa;border-radius:8px;padding:8px;font-size:12.5px}
+.ck{display:flex;gap:6px;align-items:flex-start;margin-bottom:3px;font-size:12.5px}.ck input{width:auto;margin-top:3px}
+.ck.done span{text-decoration:line-through;color:#8a9aa5}
+.x{cursor:pointer;color:var(--red);font-weight:700;flex:none;width:auto}
+#toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);background:#25384a;color:#fff;padding:10px 16px;border-radius:8px;display:none;z-index:50;max-width:80%}
+.card{border:1px solid #dde6e3;border-radius:12px;padding:14px;margin-bottom:14px}
+.muted{color:#6b7c88}
+</style>
+</head>
+<body>
+<header>
+  <div class="logo">EIGENHEIM<span>-glück</span></div>
+  <div class="sub">Cockpit · Phase Verstehen · Ist-Aufnahme</div>
+  <div class="spacer"></div>
+  <span id="mode" class="badge"></span>
+  <span id="topstatus" class="badge"></span>
+</header>
+<nav id="tabs"></nav>
+<main id="view"></main>
+<aside id="panel"></aside>
+<datalist id="nodelist"></datalist>
+<div id="toast"></div>
+<input type="file" id="fileJson" accept=".json" hidden>
+<input type="file" id="fileXlsx" accept=".xlsx" hidden>
+
+<script src="config.js" onerror="void 0"></script>
+<script>
+const SEED = [{"id": "R", "parent": null, "level": "company", "name": "EIGENHEIM-glück", "ord": 0}, {"id": "A-V", "parent": "R", "level": "area", "name": "Vertrieb", "ord": 0}, {"id": "A-P", "parent": "R", "level": "area", "name": "Planung", "ord": 1}, {"id": "A-B", "parent": "R", "level": "area", "name": "Bauen", "ord": 2}, {"id": "V01", "parent": "A-V", "level": "main", "name": "Kundenanfrage", "ord": 0, "nr": "1.", "source": "Vertrieb Z2", "q": {}, "note": "", "checklist": []}, {"id": "V02", "parent": "A-V", "level": "main", "name": "Erfassung der Wünsche und Grobdaten", "ord": 1, "nr": "2.", "source": "Vertrieb Z3", "q": {}, "note": "", "checklist": []}, {"id": "V02.01", "parent": "V02", "level": "step", "name": "Kontaktformular ausfüllen", "ord": 0, "nr": "", "source": "Vertrieb Z3 (Kunde)", "q": {"q7": "Kunde"}, "note": "", "checklist": []}, {"id": "V02.02", "parent": "V02", "level": "step", "name": "Kontaktformular ausgefüllt an Buchhaltung", "ord": 1, "nr": "", "source": "Vertrieb Z3 (Verkäufer)", "q": {"q7": "Verkäufer"}, "note": "", "checklist": []}, {"id": "V02.03", "parent": "V02", "level": "step", "name": "Interessent in Entwurfsplanungsexcel aufnehmen & Projektordner anlegen im Interessentenordner", "ord": 2, "nr": "", "source": "Vertrieb Z3 (Planung)", "q": {"q7": "Planung"}, "note": "", "checklist": []}, {"id": "V02.04", "parent": "V02", "level": "step", "name": "Kundenwünsche erfassen", "ord": 3, "nr": "", "source": "Vertrieb Z4 (Verkäufer)", "q": {"q7": "Verkäufer"}, "note": "", "checklist": []}, {"id": "V03", "parent": "A-V", "level": "main", "name": "Erstespräch mit Baustellenbesichtigung und Ablaufpräsentation / Unternehmensvorstellung", "ord": 2, "nr": "3.", "source": "Vertrieb Z5", "q": {}, "note": "", "checklist": []}, {"id": "V03.01", "parent": "V03", "level": "step", "name": "Termin mit Vorstellung", "ord": 0, "nr": "", "source": "Vertrieb Z5 (Verkäufer)", "q": {"q7": "Verkäufer"}, "note": "", "checklist": []}, {"id": "V04", "parent": "A-V", "level": "main", "name": "Vorentwurf und Angebotsausarbeitung", "ord": 3, "nr": "4.", "source": "Vertrieb Z6", "q": {}, "note": "", "checklist": []}, {"id": "V04.01", "parent": "V04", "level": "step", "name": "Vorentwurf erstellen unter Grobberücksichtigung BPlan", "ord": 0, "nr": "", "source": "Vertrieb Z6 (Planung)", "q": {"q7": "Planung"}, "note": "", "checklist": []}, {"id": "V04.02", "parent": "V04", "level": "step", "name": "Angebotserstellung", "ord": 1, "nr": "", "source": "Vertrieb Z6 (Kalkulation)", "q": {"q7": "Kalkulation"}, "note": "", "checklist": []}, {"id": "V05", "parent": "A-V", "level": "main", "name": "Durchsprache Vorentwurf und Angebotsausarbeitung", "ord": 4, "nr": "5.", "source": "Vertrieb Z7", "q": {}, "note": "", "checklist": []}, {"id": "V05.01", "parent": "V05", "level": "step", "name": "Durchsprachen / Weitere Vorgehensweise abprechen", "ord": 0, "nr": "", "source": "Vertrieb Z7 (Verkäufer)", "q": {"q7": "Verkäufer"}, "note": "", "checklist": []}, {"id": "V06", "parent": "A-V", "level": "main", "name": "Weitere unverbindliche Gespräche", "ord": 5, "nr": "6.", "source": "Vertrieb Z8", "q": {}, "note": "", "checklist": []}, {"id": "V06.01", "parent": "V06", "level": "step", "name": "Max. 3 Termine in Präsenz", "ord": 0, "nr": "", "source": "Vertrieb Z8 (Verkäufer)", "q": {"q7": "Verkäufer"}, "note": "", "checklist": []}, {"id": "V07", "parent": "A-V", "level": "main", "name": "Planungsauftrag & Vermesser beauftragen", "ord": 6, "nr": "7.", "source": "Vertrieb Z9", "q": {}, "note": "", "checklist": []}, {"id": "V07.01", "parent": "V07", "level": "step", "name": "Beauftragungen erteilen", "ord": 0, "nr": "", "source": "Vertrieb Z9 (Kunde)", "q": {"q7": "Kunde"}, "note": "", "checklist": []}, {"id": "V07.02", "parent": "V07", "level": "step", "name": "Beauftragungen einfordern und Weiterleitung an Buchhaltung", "ord": 1, "nr": "", "source": "Vertrieb Z9 (Verkäufer)", "q": {"q7": "Verkäufer"}, "note": "", "checklist": []}, {"id": "V07.03", "parent": "V07", "level": "step", "name": "AB an Kunde & Kunde in Kanbau anlegen", "ord": 2, "nr": "", "source": "Vertrieb Z9 (Buchhaltung)", "q": {"q7": "Buchhaltung"}, "note": "", "checklist": []}, {"id": "V08", "parent": "A-V", "level": "main", "name": "Planungs- und Kalkulationsanpassungen", "ord": 7, "nr": "8.", "source": "Vertrieb Z10", "q": {}, "note": "", "checklist": []}, {"id": "V08.01", "parent": "V08", "level": "step", "name": "B-Plan studieren - Excel ausfüllen zum B-Plan - evtl. über Lists abbildbar. Abstimmung bei untypischen Dingen mit Werkplanung.", "ord": 0, "nr": "", "source": "Vertrieb Z10 (Planung)", "q": {"q7": "Planung"}, "note": "", "checklist": []}, {"id": "V09", "parent": "A-V", "level": "main", "name": "Bad- und Küchenplanung anschieben | Haustechnik entscheiden | Bemusterung Sanitär", "ord": 8, "nr": "9.", "source": "Vertrieb Z11", "q": {}, "note": "", "checklist": []}, {"id": "V09.01", "parent": "V09", "level": "step", "name": "Termine ausmachen", "ord": 0, "nr": "", "source": "Vertrieb Z11 (Kunde)", "q": {"q7": "Kunde"}, "note": "", "checklist": []}, {"id": "V09.02", "parent": "V09", "level": "step", "name": "Isabelle Badplanung", "ord": 1, "nr": "", "source": "Vertrieb Z11 (Planung)", "q": {"q7": "Planung"}, "note": "", "checklist": []}, {"id": "V10", "parent": "A-V", "level": "main", "name": "Freigabe Aufteilung, Küche und Badplanung", "ord": 9, "nr": "10.", "source": "Vertrieb Z12", "q": {}, "note": "", "checklist": []}, {"id": "V10.01", "parent": "V10", "level": "step", "name": "Freigabe erteilen", "ord": 0, "nr": "", "source": "Vertrieb Z12 (Kunde)", "q": {"q7": "Kunde"}, "note": "", "checklist": []}, {"id": "V10.02", "parent": "V10", "level": "step", "name": "Sinnhaftigkeit erklären - Werkplanung geht einfacher von der Hand. Entwässerung wird im Bauantrag eingearbeitet", "ord": 1, "nr": "", "source": "Vertrieb Z12 (Verkäufer)", "q": {"q7": "Verkäufer"}, "note": "", "checklist": []}, {"id": "V10.03", "parent": "V10", "level": "step", "name": "Planprüfung durch Werkplanung vor Baueingabe. Energetisch & statisch", "ord": 2, "nr": "", "source": "Vertrieb Z12 (Werkplanung)", "q": {"q7": "Werkplanung"}, "note": "", "checklist": []}, {"id": "V11", "parent": "A-V", "level": "main", "name": "Bauantrag beginnen", "ord": 10, "nr": "11.", "source": "Vertrieb Z13", "q": {}, "note": "", "checklist": []}, {"id": "V11.01", "parent": "V11", "level": "step", "name": "Erdbauangebote einholen", "ord": 0, "nr": "", "source": "Vertrieb Z13 (Kunde)", "q": {"q7": "Kunde"}, "note": "", "checklist": []}, {"id": "V11.02", "parent": "V11", "level": "step", "name": "Baueingabe planen", "ord": 1, "nr": "", "source": "Vertrieb Z13 (Planung)", "q": {"q7": "Planung"}, "note": "", "checklist": []}, {"id": "V12", "parent": "A-V", "level": "main", "name": "Bodengutachten beauftragen", "ord": 11, "nr": "12.", "source": "Vertrieb Z14", "q": {}, "note": "", "checklist": []}, {"id": "V12.01", "parent": "V12", "level": "step", "name": "Beauftragungen erteilen", "ord": 0, "nr": "", "source": "Vertrieb Z14 (Kunde)", "q": {"q7": "Kunde"}, "note": "", "checklist": []}, {"id": "V13", "parent": "A-V", "level": "main", "name": "Bauantrag einreichen", "ord": 12, "nr": "13.", "source": "Vertrieb Z15", "q": {}, "note": "", "checklist": []}, {"id": "V13.01", "parent": "V13", "level": "step", "name": "Anfrage Medienträger", "ord": 0, "nr": "", "source": "Vertrieb Z15 (Kunde)", "q": {"q7": "Kunde"}, "note": "", "checklist": []}, {"id": "V13.02", "parent": "V13", "level": "step", "name": "Terminkoordination - Info an Buchhaltung", "ord": 1, "nr": "", "source": "Vertrieb Z15 (Verkäufer)", "q": {"q7": "Verkäufer"}, "note": "", "checklist": []}, {"id": "V13.03", "parent": "V13", "level": "step", "name": "Abrechnung PA", "ord": 2, "nr": "", "source": "Vertrieb Z15 (Buchhaltung)", "q": {"q7": "Buchhaltung"}, "note": "", "checklist": []}, {"id": "V14", "parent": "A-V", "level": "main", "name": "Werkplanungsvorbereitung", "ord": 13, "nr": "14.", "source": "Vertrieb Z16", "q": {}, "note": "", "checklist": []}, {"id": "V14.01", "parent": "V14", "level": "step", "name": "Freigabe Fenster und Grundrisse", "ord": 0, "nr": "", "source": "Vertrieb Z16 (Kunde)", "q": {"q7": "Kunde"}, "note": "", "checklist": []}, {"id": "V14.02", "parent": "V14", "level": "step", "name": "Abstimmung Koordination. Übergabegespräch Werkplanung", "ord": 1, "nr": "", "source": "Vertrieb Z16 (Verkäufer)", "q": {"q7": "Verkäufer"}, "note": "", "checklist": []}, {"id": "V14.03", "parent": "V14", "level": "step", "name": "Fensterschnitte & Freigabeliste erstellen. Freigabepläne (Grundrisse und Schnitt erstellen, ohne Haustechnik) - Übergabegespräch mit Verkauf", "ord": 2, "nr": "", "source": "Vertrieb Z16 (Werkplanung)", "q": {"q7": "Werkplanung"}, "note": "", "checklist": []}, {"id": "V15", "parent": "A-V", "level": "main", "name": "Umfang nochmal definieren als Grundlage für den Vertrag", "ord": 14, "nr": "15.", "source": "Vertrieb Z17", "q": {}, "note": "", "checklist": []}, {"id": "V15.01", "parent": "V15", "level": "step", "name": "Abschluss Bemusterung, Farbliste etc freigeben", "ord": 0, "nr": "", "source": "Vertrieb Z17 (Kunde)", "q": {"q7": "Kunde"}, "note": "", "checklist": []}, {"id": "V15.02", "parent": "V15", "level": "step", "name": "Vertragsangebot erstellen", "ord": 1, "nr": "", "source": "Vertrieb Z17 (Verkäufer)", "q": {"q7": "Verkäufer"}, "note": "", "checklist": []}, {"id": "V15.03", "parent": "V15", "level": "step", "name": "BzA erstellen", "ord": 2, "nr": "", "source": "Vertrieb Z17 (Werkplanung)", "q": {"q7": "Werkplanung"}, "note": "", "checklist": []}, {"id": "V16", "parent": "A-V", "level": "main", "name": "Beauftragung VOR Statik etc", "ord": 15, "nr": "16.", "source": "Vertrieb Z18", "q": {}, "note": "", "checklist": []}, {"id": "V16.01", "parent": "V16", "level": "step", "name": "Auftrag erteilen", "ord": 0, "nr": "", "source": "Vertrieb Z18 (Kunde)", "q": {"q7": "Kunde"}, "note": "", "checklist": []}, {"id": "V16.02", "parent": "V16", "level": "step", "name": "AB und Finanzierungsbetätigung anfordern und in Kanbau anlegen", "ord": 1, "nr": "", "source": "Vertrieb Z18 (Buchhaltung)", "q": {"q7": "Buchhaltung"}, "note": "", "checklist": []}, {"id": "W00", "parent": "A-P", "level": "main", "name": "Werkplanung", "ord": 0, "nr": "", "source": "Werkplanung", "q": {"q4": "Werkplanung"}, "note": "Quelle: Prozessablauf WERKPLANUNG.xlsx (265 Zeilen, Arbeitsblatt Tabelle1 + Sanitär + Heizung)", "checklist": []}, {"id": "W01", "parent": "W00", "level": "sub", "name": "Start", "ord": 0, "nr": "1.0", "source": "Werkplanung Z5", "q": {"q4": "Werkplanung"}, "note": "", "checklist": []}, {"id": "W01.01", "parent": "W01", "level": "step", "name": "Übernahme Sema-Projekt aus Baugesuchs-Ordner in Werkplanungs-Ordner", "ord": 0, "nr": "1.1", "source": "Werkplanung Z6", "q": {"q7": "Werkplanung"}, "note": "Im Werkplanungs-Ordner auf fortlaufende Nummer achten", "checklist": []}, {"id": "W01.02", "parent": "W01", "level": "step", "name": "Neuer Hausgrund kopieren - \"WERKPLANUNG\"", "ord": 1, "nr": "1.2", "source": "Werkplanung Z7", "q": {"q7": "Werkplanung"}, "note": "Kopie von aktuellem Baugesuch-Hausgrund", "checklist": []}, {"id": "W01.03", "parent": "W01", "level": "step", "name": "Angebot durchgehen für Sonder-Ausführungen", "ord": 2, "nr": "1.3", "source": "Werkplanung Z8", "q": {"q7": "Werkplanung"}, "note": "", "checklist": []}, {"id": "W01.04", "parent": "W01", "level": "step", "name": "BV-Info Datei durchgehen um evtl. Änderungen anzupassen", "ord": 3, "nr": "1.4", "source": "Werkplanung Z9", "q": {"q7": "Werkplanung"}, "note": "", "checklist": []}, {"id": "W01.05", "parent": "W01", "level": "step", "name": "Abchecken gibt es Änderungen zum Baugesuch", "ord": 4, "nr": "1.5", "source": "Werkplanung Z10", "q": {"q7": "Werkplanung"}, "note": "", "checklist": []}, {"id": "W01.06", "parent": "W01", "level": "step", "name": "Hat es ein Werkplanungsstartgespräch gegeben - Änderungen daraus", "ord": 5, "nr": "1.6", "source": "Werkplanung Z11", "q": {"q7": "Werkplanung"}, "note": "", "checklist": []}, {"id": "W01.07", "parent": "W01", "level": "step", "name": "Durchsprache des Projektes mit dem zuständigen Verkäufer", "ord": 6, "nr": "1.7", "source": "Werkplanung Z12", "q": {"q7": "Werkplanung"}, "note": "", "checklist": []}, {"id": "W01.08", "parent": "W01", "level": "step", "name": "Farbeinstellung - auf ORANGE ändern", "ord": 7, "nr": "1.8", "source": "Werkplanung Z13", "q": {"q7": "Werkplanung"}, "note": "", "checklist": []}, {"id": "W02", "parent": "W00", "level": "sub", "name": "BV Checken", "ord": 1, "nr": "2.0", "source": "Werkplanung Z15", "q": {"q4": "Werkplanung"}, "note": "Alle für das Baugesuch notwenigen Angaben aber für die Werkplanung unwichtig, auf Layer Einrichtung verschieben", "checklist": [{"t": "Außengelände anschauen und beurteilen", "n": "Spritzwasserabstände eingehalten? / Höhenübergänge so möglich? Sockelblech an Fenstern überall verdeckt?", "d": false}]}, {"id": "W02.01", "parent": "W02", "level": "step", "name": "Wände checken", "ord": 0, "nr": "2.1", "source": "Werkplanung Z18", "q": {"q7": "Werkplanung"}, "note": "richtige Stammdaten -Standard-Höhen - Wandaufbau", "checklist": [{"t": "Wandversatz EG - UG prüfen", "n": "", "d": false}]}, {"id": "W02.02", "parent": "W02", "level": "step", "name": "Decken checken", "ord": 1, "nr": "2.2", "source": "Werkplanung Z20", "q": {"q7": "Werkplanung"}, "note": "richtige Stammdaten -sichtbar ? - Aufbau Fußboden", "checklist": []}, {"id": "W02.03", "parent": "W02", "level": "step", "name": "Höhen checken", "ord": 2, "nr": "2.3", "source": "Werkplanung Z21", "q": {"q7": "Werkplanung"}, "note": "Höhenlage des Gebäudes mit Genehmigung abgleichen", "checklist": [{"t": "Fußbodenaufbauten checken", "n": "", "d": false}, {"t": "Entwässerungs- Leitungsführung von DG ins UG prüfen", "n": "Nach DIN 1 Entllüftung immer über Dach. Entwässerungs Fallhöhe >3,00m Strang immer entlüften.", "d": false}, {"t": "Entwässerungs- Leitungsführung Regenwasser prüfen", "n": "Dachrinnen, Flachdachgullis, Notentwässerungen, Fallrohre", "d": false}, {"t": "Höhe Entwässerung aus dem Haus mit Schachtsohle abgleichen", "n": "Falls Entwässerung nur mit Hebeanlage möglich, Verkäufer kontaktieren", "d": false}, {"t": "Höhe Rückstauebene prüfen und in Schnitt A-A einzeichnen", "n": "", "d": false}, {"t": "Innentürhöhen checken", "n": "", "d": false}]}, {"id": "W02.04", "parent": "W02", "level": "step", "name": "Fenster auf Gewährleistungsmaße checken", "ord": 3, "nr": "2.4", "source": "Werkplanung Z28", "q": {"q7": "Werkplanung"}, "note": "", "checklist": []}, {"id": "W02.05", "parent": "W02", "level": "step", "name": "Rettungsfenster vorhanden Pos bestimmen", "ord": 4, "nr": "2.5", "source": "Werkplanung Z29", "q": {"q7": "Werkplanung"}, "note": "Lichtes Rettungsmaß: B: 90cm x H: 120cm", "checklist": [{"t": "Beschattung überprüfen el. Roll. - el. Jal - o.Roll", "n": "", "d": false}, {"t": "Drehrichtingen der Fenster mit ML-Reiter kontrollieren", "n": "", "d": false}, {"t": "Überprüfen auf Sonderkonstruktionen Details vorbesprechen", "n": "", "d": false}]}, {"id": "W02.06", "parent": "W02", "level": "step", "name": "Dachraster Kontrolle Dachvorsprungsgrößen mit baugesuch vergleichen", "ord": 5, "nr": "2.6", "source": "Werkplanung Z33", "q": {"q7": "Werkplanung"}, "note": "", "checklist": []}, {"id": "W02.07", "parent": "W02", "level": "step", "name": "Dämmungsstärken von Wärmeberechnung vergleichen und anpassen", "ord": 6, "nr": "2.7", "source": "Werkplanung Z34", "q": {"q7": "Werkplanung"}, "note": "", "checklist": [{"t": "Treppenart checken und anpassen Betontreppen sichbar oder mit Belag", "n": "Treppentyp in Grundriss auf Treppe schreiben", "d": false}]}, {"id": "W02.08", "parent": "W02", "level": "step", "name": "Treppen - Konstruktion prüfen - Kopfhöhe An-Austritt usw.", "ord": 7, "nr": "2.8", "source": "Werkplanung Z36", "q": {"q7": "Werkplanung"}, "note": "Treppenbreite aus Holz: wenn Möglich max. 97cm breit", "checklist": []}, {"id": "W02.09", "parent": "W02", "level": "step", "name": "Einrichtungsgegenstände die nicht Fest verbaut sind in Reiter \"Einrichtung\" schieben", "ord": 8, "nr": "2.9", "source": "Werkplanung Z37", "q": {"q7": "Werkplanung"}, "note": "Einrichtungsgegenstände wie Sofa, Esstisch mit Stühlen , Bett, Schränke", "checklist": []}, {"id": "W02.10", "parent": "W02", "level": "step", "name": "Detaile vorab checken und festlegen", "ord": 9, "nr": "2.10", "source": "Werkplanung Z38", "q": {"q7": "Werkplanung"}, "note": "", "checklist": []}, {"id": "W02.11", "parent": "W02", "level": "step", "name": "Steigleitungen für Heizung - Lüftung usw. bestimmen", "ord": 10, "nr": "2.11", "source": "Werkplanung Z39", "q": {"q7": "Werkplanung"}, "note": "", "checklist": [{"t": "Küchenplan einlesen", "n": "auf evtl. 2. Entwässerung im Küchenblock achten (Spühlmaschine)", "d": false}]}, {"id": "W02.12", "parent": "W02", "level": "step", "name": "Badeinteilung mit Badplanung abgleichen", "ord": 11, "nr": "2.12", "source": "Werkplanung Z41", "q": {"q7": "Werkplanung"}, "note": "", "checklist": [{"t": "Entwässerung Bad Küche usw festelegen", "n": "", "d": false}, {"t": "Schornstein von Ofenbauer auslegen lassen und einplanen", "n": "Brandschutzabstände und Strahlungsangaben beachten", "d": false}]}, {"id": "W03", "parent": "W00", "level": "sub", "name": "Statik Vorbereitung Dach", "ord": 2, "nr": "3.0", "source": "Werkplanung Z46", "q": {"q4": "Werkplanung"}, "note": "", "checklist": []}, {"id": "W03.01", "parent": "W03", "level": "step", "name": "Lastabtragung vom First bis auf Bodenplatte einzeichnen", "ord": 0, "nr": "3.1", "source": "Werkplanung Z47", "q": {"q7": "Werkplanung"}, "note": "Mit grüne Schraffur Lastanfall von DG bis Bodenplatte darstellen", "checklist": []}, {"id": "W03.02", "parent": "W03", "level": "step", "name": "Sparren Einteilung festlegen", "ord": 1, "nr": "3.2", "source": "Werkplanung Z48", "q": {"q7": "Werkplanung"}, "note": "", "checklist": []}, {"id": "W03.03", "parent": "W03", "level": "step", "name": "Schornsteinauswechslungen - Dachfensterauswechslung", "ord": 2, "nr": "3.3", "source": "Werkplanung Z49", "q": {"q7": "Werkplanung"}, "note": "", "checklist": []}, {"id": "W03.04", "parent": "W03", "level": "step", "name": "Pfetten vordimensionieren", "ord": 3, "nr": "3.4", "source": "Werkplanung Z50", "q": {"q7": "Werkplanung"}, "note": "", "checklist": []}, {"id": "W03.05", "parent": "W03", "level": "step", "name": "Statikpositionen bestimmen und im Plan eintragen", "ord": 4, "nr": "3.5", "source": "Werkplanung Z51", "q": {"q7": "Werkplanung"}, "note": "Pfetten/Sparren/Abfangträger/Firstfposten", "checklist": []}, {"id": "W03.06", "parent": "W03", "level": "step", "name": "Stürze bestimmen und Statik Positionen definieren", "ord": 5, "nr": "3.6", "source": "Werkplanung Z52", "q": {"q7": "Werkplanung"}, "note": "Fenstersturze/ Innentürsturze", "checklist": []}, {"id": "W03.07", "parent": "W03", "level": "step", "name": "Sparrenlage vermaßen - DV vermaßen", "ord": 6, "nr": "3.7", "source": "Werkplanung Z53", "q": {"q7": "Werkplanung"}, "note": "", "checklist": []}, {"id": "W03.08", "parent": "W03", "level": "step", "name": "Statik Vermaßung Pfetten und sonstige Hölzer", "ord": 7, "nr": "3.8", "source": "Werkplanung Z54", "q": {"q7": "Werkplanung"}, "note": "", "checklist": []}, {"id": "W03.09", "parent": "W03", "level": "step", "name": "Details für Dachvorsprung Ortgang - sonstige Details übernehmen checken oder neu zeichnen", "ord": 8, "nr": "3.9", "source": "Werkplanung Z55", "q": {"q7": "Werkplanung"}, "note": "", "checklist": []}, {"id": "W03.10", "parent": "W03", "level": "step", "name": "ab 35° DN Schubhölzer (Querholz Traufe unter Holzfaser)", "ord": 9, "nr": "3.10", "source": "Werkplanung Z56", "q": {"q7": "Werkplanung"}, "note": "", "checklist": []}, {"id": "W03.11", "parent": "W03", "level": "step", "name": "Textteil übernehmen und dem aktuellen Bauvorhaben anpassen", "ord": 10, "nr": "3.11", "source": "Werkplanung Z57", "q": {"q7": "Werkplanung"}, "note": "", "checklist": []}, {"id": "W03.12", "parent": "W03", "level": "step", "name": "Rispenband mit beschriftung einzeichnen", "ord": 11, "nr": "3.12", "source": "Werkplanung Z58", "q": {"q7": "Werkplanung"}, "note": "", "checklist": []}, {"id": "W03.13", "parent": "W03", "level": "step", "name": "Stärke der Holzfaserplatte über Dachfläche sichtbar anbringen", "ord": 12, "nr": "3.13", "source": "Werkplanung Z59", "q": {"q7": "Werkplanung"}, "note": "", "checklist": []}, {"id": "W04", "parent": "W00", "level": "sub", "name": "Statik Vorbereitung Decken", "ord": 3, "nr": "4.0", "source": "Werkplanung Z62", "q": {"q4": "Werkplanung"}, "note": "", "checklist": [{"t": "Lastabtragungen checken", "n": "", "d": false}, {"t": "Balkenlage Einteilung bestimmen", "n": "Wände aus EG und DG beachten und Entwässerung berücksichtigen", "d": false}, {"t": "Balken vordimensionieren", "n": "", "d": false}, {"t": "Schornsteinauswechslungen beachten", "n": "", "d": false}, {"t": "Treppenauswechslung beachten", "n": "", "d": false}, {"t": "sonstige Auswechslung beachten", "n": "", "d": false}, {"t": "Statikpositionen bestimmen und im Plan eintragen", "n": "", "d": false}, {"t": "Stürze bestimmen und Statik Positionen definieren", "n": "", "d": false}, {"t": "Statik Vermaßung Balken, Stürze und sonstige Bauteile", "n": "", "d": false}, {"t": "Textteil übernehmen und dem aktuellen Bauvorhaben anpassen", "n": "", "d": false}, {"t": "Details für Balkenlage und sonstige Anschlüsse übernehmen checken oder neu zeichnen", "n": "", "d": false}, {"t": "Dreischichtplattenfelder bei Lüftungsleitungen in der Decke einplanen", "n": "", "d": false}, {"t": "Deckenaufbau zur statischn Berechnung->Schwerst möglich angeben", "n": "", "d": false}, {"t": "Entwässerungen in der Decke laufend einzeichnen", "n": "", "d": false}, {"t": "Lüftungleitungsführung in der Decke laufend einzeichnen", "n": "", "d": false}]}, {"id": "W05", "parent": "W00", "level": "sub", "name": "Statik Vorbereitung Decke Garage oder Terrasse", "ord": 4, "nr": "4.1", "source": "Werkplanung Z80", "q": {"q4": "Werkplanung"}, "note": "", "checklist": [{"t": "Lastabtragungen checken", "n": "", "d": false}, {"t": "Balkenlage Einteilung bestimmen", "n": "", "d": false}, {"t": "Balken vordimensionieren", "n": "", "d": false}, {"t": "sonstige Auswechslung beachten", "n": "", "d": false}, {"t": "Statikpositionen bestimmen und im Plan eintragen", "n": "", "d": false}, {"t": "Stürze bestimmen und Statik Positionen definieren", "n": "", "d": false}, {"t": "Statik Vermaßung Balken, Stürze und sonstige Bauteile", "n": "", "d": false}, {"t": "Textteil übernehmen und dem aktuellen Bauvorhaben anpassen", "n": "", "d": false}, {"t": "Details für Balkenlage und sonstige Anschlüsse übernehmen checken oder neu zeichnen", "n": "", "d": false}, {"t": "Deckenaufbau zur statischn Berechnung->Schwerst möglich angeben", "n": "", "d": false}, {"t": "Dachaufbau für Lastannahme beschreiben", "n": "", "d": false}, {"t": "Begrünung oder Bekiesung abklären. Auf Pläne sichtbar schreiben", "n": "", "d": false}, {"t": "Entwässerung Planen (Gullis einzeichnen)", "n": "", "d": false}, {"t": "Notentwässergen einplanen", "n": "", "d": false}, {"t": "Bei Vordächern die verkleidung der Untersicht angeben", "n": "", "d": false}]}, {"id": "W06", "parent": "W00", "level": "sub", "name": "Dachgeschoß", "ord": 5, "nr": "", "source": "Werkplanung Z98", "q": {"q4": "Werkplanung"}, "note": "", "checklist": [{"t": "evtl. 2m Linie einzeichnen", "n": "", "d": false}, {"t": "Dachfenster im Grundriß einzeichnen", "n": "", "d": false}, {"t": "Höhenlage +/- 0,00 und müNN", "n": "", "d": false}, {"t": "Innentürhöhe mit Fußbodenaufbau im Grundriss darstellen", "n": "", "d": false}, {"t": "Treppenart im Grundriss darstellen", "n": "", "d": false}, {"t": "Vermaßung neu - hW-Vermaßung", "n": "", "d": false}, {"t": "Wände als Wandverbindung verschneiden", "n": "", "d": false}, {"t": "Schichten an Wandverbindungen verschneiden", "n": "", "d": false}, {"t": "Innenwände 28cm unter die Dachschicht schneiden", "n": "Alle Innenwände die unters Dach laufen", "d": false}, {"t": "Gibelwände 19cm unter die Dachschicht schneiden", "n": "Alle Innenwände die unters Dach laufen", "d": false}, {"t": "Türen und Fenster auf gerade Holzdimensionen verschieben", "n": "", "d": false}, {"t": "Wände Nummerrieren", "n": "Entvernteste Wand vom Kranstellplatz beginnend", "d": false}, {"t": "Badeinteilung von Badplanung übernehmen", "n": "", "d": false}, {"t": "Wandhöhen Kontrollieren/Anpassen", "n": "Oft Badwände und Treppenbrüstungswände oder Küchentrennwände", "d": false}, {"t": "Wandhalter evtl. bei Brüstungswänden einplanen", "n": "", "d": false}, {"t": "Entwässerungskontrolle", "n": "", "d": false}, {"t": "Räume Kontrolle", "n": "", "d": false}, {"t": "Verbundbleche an Fenstern mit Terrassenanschlüssen festlegen", "n": "", "d": false}, {"t": "Außenwandansicht von Innen", "n": "", "d": false}, {"t": "Bei Fußbodenheizung Heizkresverteiler einplanen", "n": "", "d": false}, {"t": "Leitungsführung von Lüftungsanlagen einzeichnen", "n": "", "d": false}, {"t": "Leitungsführung Kalt und Warmwasser einzeichnen", "n": "", "d": false}, {"t": "Brand und Strahlungsabstände zu Schornsteinen einhalten", "n": "", "d": false}, {"t": "Motorseite bei Fenstern einzeichnen", "n": "", "d": false}, {"t": "Textteil übernehmen und dem aktuellen Bauvorhaben anpassen", "n": "", "d": false}, {"t": "Details für Dachgeschoß und sonstige Anschlüsse übernehmen checken oder neu zeichnen", "n": "", "d": false}]}, {"id": "W07", "parent": "W00", "level": "sub", "name": "Erdgeschoß", "ord": 6, "nr": "", "source": "Werkplanung Z127", "q": {"q4": "Werkplanung"}, "note": "", "checklist": [{"t": "Höhenlage +/- 0,00 und müNN", "n": "", "d": false}, {"t": "Innentürhöhe mit Fußbodenaufbau im Grundriss darstellen", "n": "", "d": false}, {"t": "Treppenart im Grundriss darstellen", "n": "", "d": false}, {"t": "Vermaßung neu - hW-Vermaßung", "n": "", "d": false}, {"t": "Wände als Wandverbindung verschneiden", "n": "", "d": false}, {"t": "Schichten an Wandverbindungen verschneiden", "n": "", "d": false}, {"t": "Türen und Fenster auf gerade Holzdimensionen verschieben", "n": "", "d": false}, {"t": "Wände Nummerrieren", "n": "Entvernteste Wand vom Kranstellplatz beginnend", "d": false}, {"t": "Badeinteilung von Badplanung übernehmen", "n": "", "d": false}, {"t": "Wandnischen einzeichnen und bemaßen", "n": "", "d": false}, {"t": "Wandhöhen anpassen", "n": "Oft Badwände und Treppenbrüstungswände oder Küchentrennwände", "d": false}, {"t": "Wandhalter bei Brüstungswänden einplanen", "n": "", "d": false}, {"t": "Entwässerungskontrolle", "n": "", "d": false}, {"t": "Räume Kontrolle", "n": "", "d": false}, {"t": "Sockelbleche festlegen und bemaßen", "n": "Blaue Maßlinie", "d": false}, {"t": "Montageholz festlegen und bemaßen", "n": "Grüne Maßlinie", "d": false}, {"t": "Außenwandansicht von Innen", "n": "(Garagenwände von Außen)", "d": false}, {"t": "Lichtschächte vom UG im EG darstellen", "n": "", "d": false}, {"t": "Bei Fußbodenheizung Heizkresverteiler einplanen", "n": "", "d": false}, {"t": "Installationsschächte für Elektro/ Lüftung/ Wasser vorsehen", "n": "", "d": false}, {"t": "Leitungsführung Kalt und Warmwasser einzeichnen", "n": "", "d": false}, {"t": "Brand und Strahlungsabstände zu Schornsteinen einhalten", "n": "", "d": false}, {"t": "Motorseite bei Fenstern einzeichnen", "n": "Bei Hebe-Schiebe Element eventuell 2 Motoren", "d": false}, {"t": "Textteil übernehmen und dem aktuellen Bauvorhaben anpassen", "n": "", "d": false}, {"t": "Details für Erdgeschoß und sonstige Anschlüsse übernehmen checken oder neu zeichnen", "n": "", "d": false}]}, {"id": "W08", "parent": "W00", "level": "sub", "name": "Decke über UG", "ord": 7, "nr": "", "source": "Werkplanung Z156", "q": {"q4": "Werkplanung"}, "note": "", "checklist": [{"t": "Höhenlage +/- 0,00 und müNN", "n": "", "d": false}, {"t": "Deckendicke im Grundriss darstellen", "n": "", "d": false}, {"t": "Lastabtragung vom First bis auf Betondecke einzeichnen", "n": "Mit grüne Schraffur Lastanfall darstellen", "d": false}, {"t": "Schraffur der Kellerdämmung einzeichnen", "n": "", "d": false}, {"t": "Innen- und Außenwände UG gestrichelt umranden", "n": "", "d": false}, {"t": "Brüstungswände darstellen", "n": "(Sind nicht lastabtragen) Zur besseren sichtbarkeit des Statikers", "d": false}, {"t": "Deckenfeld bemaßen", "n": "", "d": false}, {"t": "Textteil übernehmen und dem aktuellen Bauvorhaben anpassen", "n": "", "d": false}, {"t": "Deckendurchbrüche einzeichnen", "n": "Schornstein / Lüftung / Wasser / Heizung / Treppe / Elektro / PV- Leitungen Abwasser", "d": false}, {"t": "Schornstein auf Decke stehend: Vermaßen und hinzuschreiben", "n": "Annahme Lastanfall durch den Statiker", "d": false}]}, {"id": "W09", "parent": "W00", "level": "sub", "name": "Untergeschoß", "ord": 8, "nr": "", "source": "Werkplanung Z169", "q": {"q4": "Werkplanung"}, "note": "", "checklist": [{"t": "Wandstärken prüfen", "n": "", "d": false}, {"t": "Dämmungsstärken prüfen", "n": "", "d": false}, {"t": "Räume Kontrolle", "n": "", "d": false}, {"t": "Höhenlage +/- 0,00 und müNN", "n": "", "d": false}, {"t": "Innentürhöhe mit Fußbodenaufbau im Grundriss darstellen", "n": "", "d": false}, {"t": "Innentüren auf höhe anpassen", "n": "", "d": false}, {"t": "Treppenart im Grundriss darstellen", "n": "Bei Betontreppe mit oder ohne Belag angeben", "d": false}, {"t": "Wände mit Betonschraffur schraffieren", "n": "", "d": false}, {"t": "Kellerdämmung schraffieren", "n": "", "d": false}, {"t": "Lastabtragung vom First bis auf Untergeschoß einzeichnen", "n": "Mit grüne Schraffur Lastanfall darstellen", "d": false}, {"t": "Lichtschächte vor Fenster zeichnen", "n": "Höhe Lichtschacht im Fensterschnitt darstellen", "d": false}, {"t": "Laibungsdämmung einzeichnen wenn Fenster von uns kommt", "n": "", "d": false}, {"t": "Schriftzug ,, Fenster von Betonfertigteilwerk´´ wenn Fenster von BFU", "n": "", "d": false}, {"t": "Brüstungswände darstellen/ vermaßen", "n": "", "d": false}, {"t": "Innentürvermaßung", "n": "", "d": false}, {"t": "Durchbrüche oder durchdringungen durch Wände einplanen", "n": "vermaßen und beschreiben", "d": false}, {"t": "Technikraumeinteilung einzeichnen", "n": "Ausgußbecken / HAK / Medien / Gas / Wasserverteiler / Elektrokasten / Wechselrichter / Waschmaschine/Trockner / Serverschrank / PV- Speicher", "d": false}, {"t": "Kondensatablauf bei Heizungsanlagen beachten", "n": "", "d": false}, {"t": "Heizung in Technikraum zeichnen", "n": "", "d": false}, {"t": "Leitungsführung Entwässerung einzeichnen", "n": "", "d": false}, {"t": "Erdungspunkte von Bodenplatte ins UG übernehmen", "n": "", "d": false}, {"t": "Entwässerung vom DG - EG kommend kontrolieren und bestimmen Bodenentwässerung oder Wandauslässe Schmutzwasser", "n": "", "d": false}, {"t": "Eventuell Mehrsparteneinführung durch Wand", "n": "Im Schriftzug Achshöhe von RFB und Medium angeben. Frostschutz beachten", "d": false}, {"t": "Eventuell Sicherheitsablauf mit RSTV einplanen", "n": "", "d": false}, {"t": "Eventuell Pumpfix mit RSTV einplanen", "n": "Position Leerrohr für Bedieneinheit angeben", "d": false}, {"t": "Eventuell Leitungsführung von Lüftungsanlagen einzeichnen", "n": "", "d": false}, {"t": "Entwässerung außerhalb vom Gebäude einzeichnen", "n": "Schmutzwasser und Regenwasser. Position Fallrohre vermaßen", "d": false}, {"t": "Lichtschächte an Entwässerung anschließen ? RSTV einplanen ?", "n": "", "d": false}, {"t": "UG vermaßen", "n": "Auf Beton bezogen! Dämmungsstärke nur andeuten", "d": false}, {"t": "Textteil übernehmen und dem aktuellen Bauvorhaben anpassen", "n": "", "d": false}, {"t": "Elektro Vorschlag - Elektro einzeichnen - UP (AP)", "n": "Elektro auf separaten Layer legen", "d": false}, {"t": "Vorsatzwände in Bad", "n": "", "d": false}, {"t": "Entwässerung Kellersanitär - Rückstausicherung", "n": "", "d": false}]}, {"id": "W10", "parent": "W00", "level": "sub", "name": "Betonplatte unter Keller", "ord": 9, "nr": "", "source": "Werkplanung Z205", "q": {"q4": "Werkplanung"}, "note": "", "checklist": [{"t": "Höhenlage +/- 0,00 und müNN", "n": "", "d": false}, {"t": "Deckendicke im Grundriss darstellen", "n": "", "d": false}, {"t": "Fläche Betonplatte im Grundriss darstellen", "n": "", "d": false}, {"t": "Dämmumgsstärke unter Betonplatte im Grundriss darstellen", "n": "", "d": false}, {"t": "Lastabtragung vom First bis auf Betondecke einzeichnen", "n": "Mit grüne Schraffur Lastanfall darstellen", "d": false}, {"t": "Kellerdämmung schraffieren", "n": "", "d": false}, {"t": "Innen- und Außenwände UG gestrichelt umranden", "n": "", "d": false}, {"t": "Brüstungswände darstellen", "n": "(Sind nicht lastabtragen) Zur besseren sichtbarkeit des Statikers", "d": false}, {"t": "Bodenplatte bemaßen", "n": "", "d": false}, {"t": "Textteil übernehmen und dem aktuellen Bauvorhaben anpassen", "n": "", "d": false}, {"t": "Ringerder und FPA-Erder mit verbindungen einzeichnen und vermaßen", "n": "Höhenversatz der Erdunspunkte bei den Außenwände angeben", "d": false}, {"t": "Erdung unter Elektrokasten einplanen", "n": "", "d": false}, {"t": "Eventuell Entwässerungen durch Bodenplatte einzeichnen und vermaßen", "n": "", "d": false}, {"t": "Eventuell Pumpfix mit RSTV einplanen und vermaßen", "n": "Position Leerrohr für Bedieneinheit angeben", "d": false}, {"t": "Eventuell Sicherheitsablauf mit RSTV einplanen", "n": "", "d": false}, {"t": "Schornstein auf Betonplatte stehend: Vermaßen und hinzuschreiben", "n": "Annahme Lastanfall durch den Statiker", "d": false}]}, {"id": "W11", "parent": "W00", "level": "sub", "name": "Fenster", "ord": 10, "nr": "", "source": "Werkplanung Z227", "q": {"q4": "Werkplanung"}, "note": "", "checklist": [{"t": "Fensternummern kontrollieren", "n": "", "d": false}, {"t": "Fenster auf Garantie prüfen", "n": "", "d": false}, {"t": "Fenstereigenschaften Kontrolle", "n": "ML-Reiter", "d": false}, {"t": "Sockelblech einzeichnen", "n": "", "d": false}, {"t": "Rettungsfenster bestimmen", "n": "", "d": false}, {"t": "Fensterschnitte zeichnen", "n": "Schnitte immer von rechst anschauen", "d": false}, {"t": "Lasten kontrolieren - reichen Stürze aus ? evtl. gleich Stahlträger vorsehen", "n": "", "d": false}, {"t": "Hebeschiebe kontrolieren", "n": "Fußbodenaufbau kontrolle. Seitlich 15mm Luft einplanen, IPE auf Länge anpassen", "d": false}, {"t": "Rollladenkästen auf kollision prüfen", "n": "Sparren / Pfetten / Balkenlagen von Garagen oder Terrassen …", "d": false}, {"t": "Fenster bei Schalung Z-Blende bis AK Unterkonstruktion Schalung", "n": "", "d": false}, {"t": "Motorseite einzeichnen", "n": "", "d": false}, {"t": "Bohrung für Rettungskurbel setzen", "n": "", "d": false}]}, {"id": "W12", "parent": "W00", "level": "sub", "name": "Bodenplatte (ohne Keller)", "ord": 11, "nr": "", "source": "Werkplanung Z243", "q": {"q4": "Werkplanung"}, "note": "", "checklist": []}, {"id": "W13", "parent": "W00", "level": "sub", "name": "Technikraum (EG oder UG)", "ord": 12, "nr": "", "source": "Werkplanung Z245", "q": {"q4": "Werkplanung"}, "note": "", "checklist": [{"t": "Platzbedarf - Einteilung Technikraum", "n": "", "d": false}, {"t": "Wasserverteiler -Ausgußbecken", "n": "", "d": false}, {"t": "Rücksatu/Pumpfix", "n": "", "d": false}, {"t": "Mehrsparteneinführung / Bodeneinführung (Bodenplatte)", "n": "", "d": false}, {"t": "Elektroverteilerkasten - HAK- Wechselrichter - Speicher - Serverschrank", "n": "", "d": false}, {"t": "Art der Heizung Größe Platzbedarf bestimmen", "n": "", "d": false}, {"t": "sontsige Geräte im Technikraum ( Entsalzungsanlage - Waschmaschien - Gefrierschrank)", "n": "", "d": false}]}, {"id": "W14", "parent": "W00", "level": "sub", "name": "Schnitt Werkplan A-A", "ord": 13, "nr": "", "source": "Werkplanung Z258", "q": {"q4": "Werkplanung"}, "note": "", "checklist": [{"t": "Schnit erstellen im EG neben dem Grundriß Bezeichnung A-A Werkplanung", "n": "", "d": false}, {"t": "vetl. Tiefe des Schnittes korrigieren", "n": "", "d": false}, {"t": "Kontrolle RFB ü NN - Geschoßhöehnkontrolle", "n": "", "d": false}, {"t": "Kontrolle der Schichten und Dachneigung / Schichten", "n": "", "d": false}, {"t": "Keller Schrafuren anlegen Beton und Dämmung", "n": "", "d": false}, {"t": "Bemaßung Grundmaße Höhenmaße", "n": "", "d": false}, {"t": "Höhenmaße anlegen First Traue usw.", "n": "", "d": false}, {"t": "Standard-Texte einlesen", "n": "", "d": false}]}];
+</script>
+<script>
+"use strict";
+const CFG = window.COCKPIT_CONFIG || {};
+const LIVE = !!(CFG.SUPABASE_URL && CFG.SUPABASE_ANON_KEY);
+const CLIENT = Math.random().toString(36).slice(2);
+const LV = {company:"Unternehmen",area:"Bereich",main:"Hauptprozess",sub:"Teilprozess",step:"Schritt"};
+const CHILD = {company:"area",area:"main",main:"sub",sub:"step",step:null};
+const STATUS = [["open","Offen"],["taken","Aufgenommen"],["mirrored","Rückgespiegelt"],["confirmed","Bestätigt"]];
+const QS = {
+ q1:["Auslöser","Was löst es aus?"],
+ q2:["Ergebnis","Was soll am Ende herauskommen, was wird übergeben?"],
+ q4:["Beteiligte","Wer ist beteiligt?"],
+ q5:["Unterlagen","Welche Informationen und Dokumente braucht es?"],
+ q6:["Wo hakt es","Wo hakt es heute? (Nur aufschreiben, noch nicht optimieren. Wenn nichts: „kein Engpass“)"],
+ q7:["Wer macht / gibt frei","Wer macht es, wer gibt frei?"],
+ q8:["Ablageort","Wo werden Informationen und Dokumente abgelegt?"],
+ q9:["Abhängigkeiten und Fristen","Welche Abhängigkeiten und Fristen gibt es? (Wenn keine: „keine“)"],
+ q10:["Ausnahmen","Welche Ausnahmen gibt es? Was passiert, wenn etwas fehlt?"],
+ q11:["Häufigkeit und Dauer","Wie oft kommt es vor, wie lange dauert es?"],
+ q12:["Rückfragen","Welche Rückfragen kommen immer wieder?"]};
+const REQ = {main:["q1","q2","q4","q5","q6"],sub:["q1","q2","q4","q5","q6"],step:["q7","q5","q6","q9","q11"]};
+const OPT = {main:["q7","q8","q9","q10","q11","q12"],sub:["q7","q8","q9","q10","q11","q12"],step:["q1","q2","q4","q8","q10","q12"]};
+const COUNTS = n => n.level==="main"||n.level==="sub"||n.level==="step";
+
+let nodes = {}, sel = null, tab = "map", onlyGaps = false, search = "", collapsed = new Set(), sb = null;
+const $ = s => document.querySelector(s);
+const esc = s => String(s==null?"":s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const uid = () => "n"+Date.now().toString(36)+Math.random().toString(36).slice(2,6);
+function toast(t){const e=$("#toast");e.textContent=t;e.style.display="block";clearTimeout(toast.t);toast.t=setTimeout(()=>e.style.display="none",3500)}
+
+const kids = id => Object.values(nodes).filter(n=>n.parent===id).sort((a,b)=>a.ord-b.ord);
+function norm(n){n.q=n.q||{};n.checklist=n.checklist||[];n.deps=n.deps||[];n.fristen=n.fristen||[];n.status=n.status||"open";return n}
+function path(id){const o=[];let c=nodes[id];while(c){o.unshift(c);c=c.parent?nodes[c.parent]:null}return o}
+function pathStr(id){return path(id).filter(n=>n.parent).map(n=>n.name).join(" › ")}
+function areaOf(id){const p=path(id);return p[1]?p[1].name:""}
+function filled(n,k){
+  if(k==="q9"&&((n.deps||[]).length||(n.fristen||[]).length)) return true;
+  return !!(n.q[k]||"").trim();
+}
+function missing(n){return (REQ[n.level]||[]).filter(k=>!filled(n,k))}
+function ownState(n){ if(missing(n).length) return "red"; return n.status==="confirmed"?"green":"orange"; }
+function computeGaps(){
+  const out={};
+  const visit=id=>{
+    const n=nodes[id];let done=0,total=0;const st=[];
+    if(COUNTS(n)) st.push(ownState(n));
+    for(const k of kids(id)){
+      const g=visit(k.id);done+=g.done+(COUNTS(k)&&ownState(k)==="green"?1:0);total+=g.total+(COUNTS(k)?1:0);st.push(g.state);
+    }
+    if(n.level==="area"&&!kids(id).length) st.push("red");
+    const state=st.includes("red")?"red":st.includes("orange")?"orange":"green";
+    return out[id]={state,done,total};
+  };
+  const r=Object.values(nodes).find(n=>!n.parent); if(r) visit(r.id);
+  return out;
+}
+let GAPS={};
+
+let localTimer=null; const pend=new Map();
+function persistLocal(){clearTimeout(localTimer);localTimer=setTimeout(()=>localStorage.setItem("cockpit-ist-v1",JSON.stringify(nodes)),300)}
+function save(n){
+  n.upd=Date.now();n.by=CLIENT;
+  if(!LIVE){persistLocal();return}
+  clearTimeout(pend.get(n.id));
+  pend.set(n.id,setTimeout(async()=>{
+    const r=await sb.from("nodes").upsert({id:n.id,data:n,updated_at:new Date().toISOString()});
+    if(r.error) toast("Speichern fehlgeschlagen: "+r.error.message);
+  },500));
+}
+async function removeIds(ids){
+  ids.forEach(i=>delete nodes[i]);
+  if(!LIVE){persistLocal();return}
+  const r=await sb.from("nodes").delete().in("id",ids); if(r.error) toast("Löschen fehlgeschlagen: "+r.error.message);
+}
+async function saveMany(list){
+  list.forEach(n=>{n.upd=Date.now();n.by=CLIENT;nodes[n.id]=n});
+  if(!LIVE){persistLocal();return}
+  for(let i=0;i<list.length;i+=100){
+    const r=await sb.from("nodes").upsert(list.slice(i,i+100).map(n=>({id:n.id,data:n,updated_at:new Date().toISOString()})));
+    if(r.error){toast("Speichern fehlgeschlagen: "+r.error.message);return}
+  }
+}
+function loadScript(src){return new Promise((ok,no)=>{const s=document.createElement("script");s.src=src;s.onload=ok;s.onerror=()=>no(new Error("Konnte "+src+" nicht laden"));document.head.appendChild(s)})}
+function collapseDefault(){Object.values(nodes).forEach(n=>{if((n.level==="main"||n.level==="sub")&&kids(n.id).length) collapsed.add(n.id)})}
+async function init(){
+  $("#mode").textContent=LIVE?"Gemeinsamer Live-Stand":"Lokaler Modus (nur dieser Browser)";
+  $("#mode").className="badge "+(LIVE?"b-live":"b-loc");
+  try{
+    if(LIVE){
+      await loadScript("https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2");
+      sb=window.supabase.createClient(CFG.SUPABASE_URL,CFG.SUPABASE_ANON_KEY);
+      const r=await sb.from("nodes").select("id,data");
+      if(r.error) throw r.error;
+      r.data.forEach(x=>nodes[x.id]=norm(x.data));
+      sb.channel("nodes-live").on("postgres_changes",{event:"*",schema:"public",table:"nodes"},p=>{
+        if(p.eventType==="DELETE"){delete nodes[p.old.id]}
+        else{const d=p.new.data;if(d&&d.by===CLIENT)return;nodes[d.id]=norm(d)}
+        refresh(true);
+      }).subscribe();
+    }else{
+      const raw=localStorage.getItem("cockpit-ist-v1"); if(raw) Object.values(JSON.parse(raw)).forEach(n=>nodes[n.id]=norm(n));
+    }
+  }catch(e){toast("Verbindung fehlgeschlagen: "+(e.message||e));}
+  if(!Object.keys(nodes).length){ await loadSeed(true); }
+  collapseDefault();
+  refresh();
+}
+async function loadSeed(silent){
+  const add=SEED.filter(s=>!nodes[s.id]).map(s=>norm(JSON.parse(JSON.stringify(s))));
+  await saveMany(add);
+  if(!silent) toast(add.length+" Kacheln aus den Excel-Listen geladen");
+  collapseDefault();
+  refresh();
+}
+
+function refresh(fromRemote){
+  GAPS=computeGaps();
+  const root=Object.values(nodes).find(n=>!n.parent), g=root?GAPS[root.id]:null;
+  const ts=$("#topstatus");
+  if(g&&g.state==="green"){ts.textContent="Ist-Stand validiert";ts.className="badge b-gr"}
+  else{ts.textContent="Ist-Stand nicht validiert: "+(g?g.total-g.done:0)+" von "+(g?g.total:0)+" offen";ts.className="badge b-red"}
+  $("#nodelist").innerHTML=Object.values(nodes).filter(COUNTS).map(n=>`<option value="${esc(pathStr(n.id))}">`).join("");
+  renderTabs();renderView();
+  if(sel&&nodes[sel]){ if(!fromRemote||!$("#panel").contains(document.activeElement)) renderPanel(); } else if(sel){sel=null;$("#panel").classList.remove("open")}
+}
+function renderTabs(){
+  const T=[["map","Mindmap"],["ist","Ist-Stand auf einen Blick"],["gaps","Lücken"],["eng","Engpässe"],["dep","Abhängigkeiten und Fristen"],["data","Daten"]];
+  $("#tabs").innerHTML=T.map(([k,l])=>`<button class="${tab===k?"on":""}" data-tab="${k}">${l}</button>`).join("");
+}
+function renderView(){
+  const v=$("#view");
+  if(tab==="map") return renderMap(v);
+  if(tab==="ist") return renderIst(v);
+  if(tab==="gaps") return renderGaps(v);
+  if(tab==="eng") return renderEng(v);
+  if(tab==="dep") return renderDep(v);
+  return renderData(v);
+}
+const dotc = s => `<span class="dot ${s}"></span>`;
+
+const COLW=262,ROWH=46;
+function renderMap(v){
+  const old=$("#mapwrap");const scroll=old?[old.scrollLeft,old.scrollTop]:[0,0];
+  v.innerHTML=`<div class="bar">
+    <button class="btn ghost" data-act="expand">Alles aufklappen</button>
+    <button class="btn ghost" data-act="collapse">Alles zuklappen</button>
+    <button class="btn ${onlyGaps?"red":"ghost"}" data-act="gaps">Nur Lücken anzeigen</button>
+    <input id="q" placeholder="Suchen …" value="${esc(search)}" style="max-width:240px">
+    <span class="muted">Klick = öffnen · Doppelklick = auf-/zuklappen · Rahmen: <span class="dot red"></span> Lücke <span class="dot orange"></span> ausgefüllt, nicht bestätigt <span class="dot green"></span> vollständig</span>
+  </div><div id="mapwrap"><div id="map"></div></div>`;
+  const pos={};let y=0,maxd=0;
+  const q=search.trim().toLowerCase();
+  const match=id=>{const n=nodes[id];if(n.name.toLowerCase().includes(q))return true;return kids(id).some(k=>match(k.id))};
+  const walk=(id,d)=>{
+    maxd=Math.max(maxd,d);
+    let ks=kids(id);
+    if(onlyGaps) ks=ks.filter(k=>GAPS[k.id].state!=="green");
+    if(q) ks=ks.filter(k=>match(k.id));
+    const open=ks.length&&(q||!collapsed.has(id));
+    if(!open){pos[id]={d,y:y++};return}
+    const ys=[];ks.forEach(k=>{walk(k.id,d+1);ys.push(pos[k.id].y)});
+    pos[id]={d,y:(ys[0]+ys[ys.length-1])/2};
+  };
+  const root=Object.values(nodes).find(n=>!n.parent); if(!root){$("#map").textContent="Keine Daten.";return}
+  walk(root.id,0);
+  const W=(maxd+1)*COLW+40,H=Math.max(y,1)*ROWH+30;
+  let svg="",html="";
+  for(const id in pos){
+    const n=nodes[id],p=pos[id];
+    const x=p.d*COLW+12,yy=p.y*ROWH+12;
+    for(const k of kids(id)){ if(pos[k.id]&&pos[k.id].d===p.d+1){
+      const x1=x+226,y1=yy+18,x2=pos[k.id].d*COLW+12,y2=pos[k.id].y*ROWH+12+18;
+      svg+=`<path d="M${x1} ${y1} C ${x1+26} ${y1}, ${x2-26} ${y2}, ${x2} ${y2}" fill="none" stroke="#b9cbc7" stroke-width="1.5"/>`;
+    }}
+    const g=GAPS[id];const hasK=kids(id).length>0;
+    const cnt=hasK&&g.total?`${g.done}/${g.total}`:"";
+    const st=(n.level==="company"?"":g.state);
+    html+=`<div class="node ${n.level} ${st} ${sel===id?"sel":""}" data-id="${id}" style="left:${x}px;top:${yy}px" title="${esc(n.name)}">
+      ${COUNTS(n)&&ownState(n)==="red"?'<span class="rd"></span>':""}
+      <span class="t">${esc(n.name)}</span><span class="c">${cnt}</span>
+      ${hasK?`<span class="tg" data-tg="${id}">${(q||!collapsed.has(id))?"–":"+"}</span>`:""}</div>`;
+  }
+  $("#map").style.cssText=`width:${W}px;height:${H}px`;
+  $("#map").innerHTML=`<svg width="${W}" height="${H}">${svg}</svg>`+html;
+  $("#mapwrap").scrollLeft=scroll[0];$("#mapwrap").scrollTop=scroll[1];
+}
+
+function renderIst(v){
+  const root=Object.values(nodes).find(n=>!n.parent),g=GAPS[root.id];
+  const rows=[];
+  for(const a of kids(root.id)){
+    const ms=kids(a.id);
+    if(!ms.length){rows.push(`<tr><td><b>${esc(a.name)}</b></td><td colspan="5" class="muted">Noch nicht aufgenommen</td><td>${dotc("red")}</td></tr>`);continue}
+    ms.forEach((m,i)=>{
+      const gi=GAPS[m.id],tot=gi.total+1,done=gi.done+(ownState(m)==="green"?1:0),pc=Math.round(done/tot*100);
+      rows.push(`<tr class="link" data-focus="${m.id}"><td>${i?"":"<b>"+esc(a.name)+"</b>"}</td><td>${esc(m.name)}</td><td>${tot}</td><td>${done}</td><td>${tot-done}</td><td><div class="pbar"><div style="width:${pc}%"></div></div>${pc} %</td><td>${dotc(gi.state==="red"||ownState(m)==="red"?"red":gi.state)}</td></tr>`);
+    });
+  }
+  v.innerHTML=`<div class="status ${g.state==="green"?"green":"red"}">${g.state==="green"?"Ist-Stand validiert":"Ist-Stand noch nicht validiert: "+(g.total-g.done)+" von "+g.total+" Kacheln offen"}</div>
+  <p class="muted">Eine Kachel ist vollständig, wenn alle Pflichtfragen ausgefüllt sind und der Status „Bestätigt“ ist. Bereiche ohne Hauptprozesse gelten als nicht aufgenommen.</p>
+  <table><tr><th>Bereich</th><th>Hauptprozess</th><th>Kacheln</th><th>vollständig</th><th>mit Lücke</th><th>Fortschritt</th><th>Ampel</th></tr>${rows.join("")}</table>`;
+}
+function gapRows(){
+  const out=[];
+  Object.values(nodes).filter(COUNTS).forEach(n=>{
+    if(ownState(n)==="green")return;
+    out.push({id:n.id,path:pathStr(n.id),area:areaOf(n.id),miss:missing(n).map(k=>QS[k][0]),status:(STATUS.find(s=>s[0]===n.status)||[])[1],wer:(n.q.q7||n.q.q4||"").trim()});
+  });
+  return out.sort((a,b)=>a.path.localeCompare(b.path));
+}
+let gapArea="",gapWer="";
+function renderGaps(v){
+  let rows=gapRows();
+  const areas=[...new Set(rows.map(r=>r.area))];
+  if(gapArea)rows=rows.filter(r=>r.area===gapArea);
+  if(gapWer)rows=rows.filter(r=>r.wer.toLowerCase().includes(gapWer.toLowerCase()));
+  v.innerHTML=`<div class="bar"><select id="gArea" style="max-width:200px"><option value="">Alle Bereiche</option>${areas.map(a=>`<option ${a===gapArea?"selected":""}>${esc(a)}</option>`).join("")}</select>
+  <input id="gWer" placeholder="Wer enthält …" value="${esc(gapWer)}" style="max-width:260px"><button class="btn ghost" data-act="gapcsv">Als CSV exportieren</button><span class="muted">${rows.length} Kacheln mit Lücke</span></div>
+  <table><tr><th>Pfad</th><th>Fehlende Pflichtfragen</th><th>Status</th><th>Wer</th></tr>${rows.map(r=>`<tr class="link" data-focus="${r.id}"><td>${esc(r.path)}</td><td>${r.miss.map(m=>`<span class="chip">${esc(m)}</span>`).join("")||'<span class="muted">alles ausgefüllt, noch nicht bestätigt</span>'}</td><td>${esc(r.status)}</td><td>${esc(r.wer)}</td></tr>`).join("")}</table>`;
+}
+function renderEng(v){
+  const rated=Object.values(nodes).filter(n=>n.h&&n.a).sort((a,b)=>b.h*b.a-a.h*a.a);
+  const open=Object.values(nodes).filter(n=>!(n.h&&n.a)&&(n.q.q6||"").trim()&&!/^kein/i.test(n.q.q6.trim()));
+  const col=s=>s>=6?"#D9534F":s>=3?"#F4B183":"#FFE699";
+  v.innerHTML=`<p class="muted">Bewertung in der Detailansicht der Kachel: Häufigkeit × Auswirkung (1–3). Score 6–9 rot.</p>
+  <h3>Bewertet (nach Score)</h3><table><tr><th>Score</th><th>Pfad</th><th>Wo hakt es</th><th>H</th><th>A</th></tr>${rated.map(n=>`<tr class="link" data-focus="${n.id}"><td style="background:${col(n.h*n.a)};font-weight:800">${n.h*n.a}</td><td>${esc(pathStr(n.id))}</td><td>${esc(n.q.q6||"")}</td><td>${n.h}</td><td>${n.a}</td></tr>`).join("")||'<tr><td colspan="5" class="muted">Noch nichts bewertet.</td></tr>'}</table>
+  <h3>Noch nicht bewertet (Engpass beschrieben)</h3><table><tr><th>Pfad</th><th>Wo hakt es</th></tr>${open.map(n=>`<tr class="link" data-focus="${n.id}"><td>${esc(pathStr(n.id))}</td><td>${esc(n.q.q6)}</td></tr>`).join("")||'<tr><td colspan="2" class="muted">Keine.</td></tr>'}</table>`;
+}
+function renderDep(v){
+  const list=Object.values(nodes).filter(n=>(n.deps||[]).length||(n.fristen||[]).length);
+  v.innerHTML=`<p class="muted">Eintragen in der Detailansicht einer Kachel (Abschnitte „Wartet auf“ und „Fristen“).</p><table><tr><th>Kachel</th><th>Wartet auf</th><th>Art</th><th>Fristen</th></tr>${list.map(n=>`<tr class="link" data-focus="${n.id}"><td>${esc(pathStr(n.id))}</td><td>${n.deps.map(d=>esc(d.ref&&nodes[d.ref]?pathStr(d.ref):d.text)).join("<br>")}</td><td>${n.deps.map(d=>esc(d.art)).join("<br>")}</td><td>${n.fristen.map(f=>esc(f.art+": "+f.name+" "+f.dauer)).join("<br>")}</td></tr>`).join("")||'<tr><td colspan="4" class="muted">Noch nichts eingetragen.</td></tr>'}</table>`;
+}
+function renderData(v){
+  v.innerHTML=`<div class="card"><b>Export</b><p class="muted">Eine Zeile je Kachel mit allen Fragen, Abhängigkeiten, Fristen und Engpass-Score. Das ist die Textliste für n8n.</p>
+  <button class="btn" data-act="csv">Alle Kacheln als CSV</button> <button class="btn ghost" data-act="json">Alles als JSON</button></div>
+  <div class="card"><b>Import</b><p class="muted">Excel im gleichen Aufbau wie „Ist-Aufnahme-Struktur“ (Reiter Ist_Struktur und Ist_Checklisten), z. B. für die Liste von Bauen. Es wird zu den bestehenden Kacheln hinzugefügt, nichts wird überschrieben.</p>
+  <button class="btn" data-act="xlsx">Excel importieren</button> <button class="btn ghost" data-act="jsonin">JSON importieren</button></div>
+  <div class="card"><b>Startdaten</b><p class="muted">Lädt die Struktur aus den Listen Vertrieb und Werkplanung (nur fehlende Kacheln, vorhandene bleiben).</p><button class="btn ghost" data-act="seed">Startdaten laden</button></div>
+  <div class="card"><b>Gefahrenzone</b><p class="muted">Löscht alle Kacheln${LIVE?" für alle Personen":" in diesem Browser"}.</p><button class="btn red" data-act="wipe">Alles löschen</button></div>`;
+}
+
+function renderPanel(){
+  const n=nodes[sel],p=$("#panel");
+  if(!n){p.classList.remove("open");return}
+  const st=n.level==="company"?"":ownState(n);
+  const req=REQ[n.level]||[],opt=OPT[n.level]||[];
+  const ta=(k,isReq)=>{const e=isReq&&!filled(n,k);return `<div class="q ${isReq?"req":""} ${e?"empty":""}"><label>${QS[k][0]} <span class="req-tag">${QS[k][1]}</span></label><textarea data-q="${k}">${esc(n.q[k]||"")}</textarea></div>`};
+  const ks=kids(n.id);
+  p.innerHTML=`<div class="row"><div class="crumb">${esc(path(n.id).map(x=>x.name).join(" › "))}</div><button class="btn ghost sm" data-act="close">Schließen</button></div>
+  <div class="row"><input data-name value="${esc(n.name)}" style="font-weight:800;font-size:16px"></div>
+  <div class="row"><span class="sm">${LV[n.level]} ${st?dotc(st):""}</span>
+  ${COUNTS(n)?`<select data-status>${STATUS.map(s=>`<option value="${s[0]}" ${n.status===s[0]?"selected":""}>${s[1]}</option>`).join("")}</select>`:""}</div>
+  ${COUNTS(n)?`<h3>Pflichtfragen</h3>${req.map(k=>ta(k,true)).join("")}
+  ${n.level!=="step"?`<div class="q"><label>Schritte / Unterkacheln <span class="req-tag">entstehen automatisch aus den Kacheln darunter</span></label><div class="note">${ks.map(k=>"• "+esc(k.name)).join("<br>")||"noch keine"}</div></div>`:""}
+  <h3>Weitere Fragen</h3>${opt.map(k=>ta(k,false)).join("")}
+  ${n.note?`<h3>Notiz aus Excel</h3><div class="note">${esc(n.note)}</div>`:""}
+  <h3>Wartet auf (Abhängigkeiten)</h3>
+  ${n.deps.map((d,i)=>`<div class="row"><span>${esc(d.ref&&nodes[d.ref]?pathStr(d.ref):d.text)} <span class="muted">· ${esc(d.art)}</span></span><span class="x sm" data-act="deldep" data-i="${i}">✕</span></div>`).join("")}
+  <div class="row"><input id="depIn" list="nodelist" placeholder="Kachel suchen oder Freitext (z. B. Behörde)"><select id="depArt" class="sm"><option>intern</option><option>extern</option><option>bereichsübergreifend</option></select><button class="btn sm" data-act="adddep">+</button></div>
+  <h3>Fristen</h3>
+  ${n.fristen.map((f,i)=>`<div class="row"><select data-fr="${i}" data-f="art" class="sm"><option ${f.art==="gesetzlich"?"selected":""}>gesetzlich</option><option ${f.art==="vertraglich"?"selected":""}>vertraglich</option><option ${f.art==="intern"?"selected":""}>intern</option></select><input data-fr="${i}" data-f="name" value="${esc(f.name)}" placeholder="Bezeichnung"><input data-fr="${i}" data-f="dauer" value="${esc(f.dauer)}" placeholder="z. B. 10 Arbeitstage"><span class="x sm" data-act="delfr" data-i="${i}">✕</span></div>`).join("")}
+  <button class="btn ghost" data-act="addfr">+ Frist</button>
+  <h3>Checkliste</h3>
+  ${n.checklist.map((c,i)=>`<div class="ck ${c.d?"done":""}"><input type="checkbox" data-cd="${i}" ${c.d?"checked":""}><span>${esc(c.t)}${c.n?` <i class="muted">→ ${esc(c.n)}</i>`:""}</span><span class="x" data-act="delck" data-i="${i}">✕</span></div>`).join("")}
+  <div class="row"><input id="ckIn" placeholder="Neuer Prüfpunkt"><button class="btn sm" data-act="addck">+</button></div>
+  <h3>Engpass-Bewertung</h3>
+  <div class="row"><select data-h><option value="">Häufigkeit</option>${[1,2,3].map(i=>`<option value="${i}" ${n.h==i?"selected":""}>${i} ${["selten","manchmal","fast immer"][i-1]}</option>`).join("")}</select>
+  <select data-a><option value="">Auswirkung</option>${[1,2,3].map(i=>`<option value="${i}" ${n.a==i?"selected":""}>${i} ${["gering","spürbar","verzögert / kostet Geld"][i-1]}</option>`).join("")}</select>
+  <b class="sm">${n.h&&n.a?"Score "+n.h*n.a:""}</b></div>`:""}
+  <h3>Aktionen</h3>
+  <div class="row">${CHILD[n.level]?`<button class="btn leaf" data-act="addchild">+ ${LV[CHILD[n.level]]} darunter</button>`:""}${n.parent?`<button class="btn red sm" data-act="delnode">Löschen</button>`:""}</div>
+  ${n.source?`<p class="muted">Quelle: ${esc(n.source)}</p>`:""}`;
+  p.classList.add("open");
+}
+
+function select(id,focus){
+  sel=id;
+  if(focus){let c=nodes[id];while(c&&c.parent){c=nodes[c.parent];collapsed.delete(c.id)}tab="map";search="";onlyGaps=false}
+  refresh();
+  if(focus){const e=document.querySelector(`.node[data-id="${id}"]`);if(e)e.scrollIntoView({block:"center",inline:"center"})}
+}
+function downloadFile(name,text,type){const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([text],{type}));a.download=name;a.click()}
+const csvEsc=v=>'"'+String(v==null?"":v).replace(/"/g,'""')+'"';
+function toCsv(head,rows){return "﻿"+[head,...rows].map(r=>r.map(csvEsc).join(";")).join("\n")}
+function exportCsv(){
+  const head=["ID","Eltern-ID","Ebene","Bereich","Pfad","Name","Q1 Auslöser","Q2 Ergebnis","Q3 Schritte (Unterkacheln)","Q4 Beteiligte","Q5 Unterlagen","Q6 Wo hakt es","Q7 Wer macht / gibt frei","Q8 Ablageort","Q9 Abhängigkeiten und Fristen","Q10 Ausnahmen","Q11 Häufigkeit und Dauer","Q12 Rückfragen","Notiz aus Excel","Checkliste","Wartet auf (IDs)","Wartet auf (Text)","Fristen","Häufigkeit","Auswirkung","Score","Status","Ampel"];
+  const order=[];const walk=id=>{order.push(nodes[id]);kids(id).forEach(k=>walk(k.id))};
+  const r=Object.values(nodes).find(n=>!n.parent);if(r)walk(r.id);
+  const rows=order.filter(n=>n.parent).map(n=>[n.id,n.parent,LV[n.level],areaOf(n.id),pathStr(n.id),n.name,
+    n.q.q1,n.q.q2,kids(n.id).map(k=>k.name).join(" | "),n.q.q4,n.q.q5,n.q.q6,n.q.q7,n.q.q8,n.q.q9,n.q.q10,n.q.q11,n.q.q12,n.note,
+    n.checklist.map(c=>c.t+(c.n?" → "+c.n:"")).join(" | "),n.deps.filter(d=>d.ref).map(d=>d.ref).join(" | "),n.deps.filter(d=>!d.ref).map(d=>d.text).join(" | "),
+    n.fristen.map(f=>f.art+": "+f.name+" "+f.dauer).join(" | "),n.h||"",n.a||"",n.h&&n.a?n.h*n.a:"",(STATUS.find(s=>s[0]===n.status)||[])[1],COUNTS(n)?ownState(n):""]);
+  downloadFile("cockpit-ist-aufnahme.csv",toCsv(head,rows),"text/csv");
+}
+async function importXlsx(file){
+  try{
+    if(!window.XLSX) await loadScript("https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js");
+    const wb=XLSX.read(await file.arrayBuffer(),{type:"array"});
+    const pick=e=>{const nm=wb.SheetNames.find(s=>s.trim().endsWith(e));if(!nm)throw new Error("Arbeitsblatt „… "+e+"“ fehlt.");return XLSX.utils.sheet_to_json(wb.Sheets[nm],{header:1,defval:"",range:0})};
+    const S=pick("Ist_Struktur"),C=pick("Ist_Checklisten");
+    const head=S[3].map(x=>String(x).replace(/\s+/g," ").trim());
+    const col=nm=>{const i=head.indexOf(nm);if(i<0)throw new Error("Spalte fehlt in Zeile 4: „"+nm+"“");return i};
+    const iID=col("ID"),iP=col("Eltern-ID"),iL=col("Ebene"),iN=col("Name (Hauptprozess / Teilprozess / Schritt)"),iW=col("Verantwortlich"),iH=col("Hinweis aus Excel"),iS=col("Quelle");
+    const map={};const newNodes=[];const areaByName=n=>Object.values(nodes).find(x=>x.level==="area"&&x.name===n);
+    const cnt={};
+    for(const r of S.slice(4)){
+      const id=String(r[iID]).trim(),lv=String(r[iL]).trim();if(!id||!lv)continue;
+      if(lv==="Bereich"){const a=areaByName(String(r[iN]).trim());if(a)map[id]=a.id;continue}
+      const level={Hauptprozess:"main",Teilprozess:"sub",Schritt:"step"}[lv];if(!level)continue;
+      const par=map[String(r[iP]).trim()];if(!par)continue;
+      const nid=uid();map[id]=nid;if(cnt[par]===undefined)cnt[par]=kids(par).length;
+      const w=String(r[iW]).trim();
+      newNodes.push(norm({id:nid,parent:par,level,name:String(r[iN]).trim(),ord:cnt[par]++,source:String(r[iS]||""),note:String(r[iH]||"").trim(),q:w?{[level==="step"?"q7":"q4"]:w}:{}}));
+    }
+    const byId=Object.fromEntries(newNodes.map(n=>[n.id,n]));
+    const ch=C[3].map(x=>String(x).trim());
+    for(const r of C.slice(4)){
+      if(String(r[0]).startsWith("Zusatz"))break;
+      const t=byId[map[String(r[ch.indexOf("Kachel-ID")]).trim()]];const txt=String(r[ch.indexOf("Prüfpunkt")]||"").trim();
+      if(t&&txt)t.checklist.push({t:txt,n:String(r[ch.indexOf("Hinweis aus Excel")]||"").trim(),d:false});
+    }
+    if(!newNodes.length)throw new Error("Keine Kacheln gefunden (Bereichsname muss einem vorhandenen Bereich entsprechen: Vertrieb, Planung, Bauen).");
+    await saveMany(newNodes);collapseDefault();
+    toast(newNodes.length+" Kacheln importiert");refresh();
+  }catch(e){toast("Import fehlgeschlagen: "+e.message)}
+}
+
+document.addEventListener("click",async e=>{
+  const t=e.target;
+  const tabb=t.closest("[data-tab]");if(tabb){tab=tabb.dataset.tab;refresh();return}
+  const tg=t.closest("[data-tg]");if(tg){const id=tg.dataset.tg;collapsed.has(id)?collapsed.delete(id):collapsed.add(id);renderView();return}
+  const nd=t.closest(".node");if(nd&&tab==="map"){sel=nd.dataset.id;renderView();renderPanel();return}
+  const fo=t.closest("[data-focus]");if(fo){select(fo.dataset.focus,true);return}
+  const b=t.closest("[data-act]");if(!b)return;
+  const act=b.dataset.act,n=nodes[sel],i=+b.dataset.i;
+  const rp=()=>{save(n);refresh()};
+  if(act==="expand"){collapsed.clear();renderView()}
+  else if(act==="collapse"){collapseDefault();renderView()}
+  else if(act==="gaps"){onlyGaps=!onlyGaps;renderView()}
+  else if(act==="close"){sel=null;$("#panel").classList.remove("open");renderView()}
+  else if(act==="gapcsv"){const r=gapRows();downloadFile("luecken.csv",toCsv(["Pfad","Bereich","Fehlende Pflichtfragen","Status","Wer"],r.map(x=>[x.path,x.area,x.miss.join(", "),x.status,x.wer])),"text/csv")}
+  else if(act==="csv")exportCsv();
+  else if(act==="json")downloadFile("cockpit-"+new Date().toISOString().slice(0,10)+".json",JSON.stringify(Object.values(nodes),null,1),"application/json");
+  else if(act==="xlsx")$("#fileXlsx").click();
+  else if(act==="jsonin")$("#fileJson").click();
+  else if(act==="seed")loadSeed();
+  else if(act==="wipe"){if(confirm("Wirklich ALLE Kacheln löschen?")&&confirm("Letzte Warnung: das kann nicht rückgängig gemacht werden.")){await removeIds(Object.keys(nodes));sel=null;refresh()}}
+  else if(act==="addchild"){const c=CHILD[n.level];const nn=norm({id:uid(),parent:n.id,level:c,name:"Neue Kachel",ord:kids(n.id).length,q:{}});nodes[nn.id]=nn;collapsed.delete(n.id);save(nn);sel=nn.id;refresh()}
+  else if(act==="delnode"){if(!confirm("„"+n.name+"“ mit allen Unterkacheln löschen?"))return;const ids=[];const w=id=>{ids.push(id);kids(id).forEach(k=>w(k.id))};w(n.id);sel=null;await removeIds(ids);refresh()}
+  else if(act==="adddep"){const v=$("#depIn").value.trim();if(!v)return;const hit=Object.values(nodes).find(x=>COUNTS(x)&&pathStr(x.id)===v);n.deps.push({ref:hit?hit.id:null,text:v,art:$("#depArt").value});rp()}
+  else if(act==="deldep"){n.deps.splice(i,1);rp()}
+  else if(act==="addfr"){n.fristen.push({art:"intern",name:"",dauer:"",bezug:""});rp()}
+  else if(act==="delfr"){n.fristen.splice(i,1);rp()}
+  else if(act==="addck"){const v=$("#ckIn").value.trim();if(!v)return;n.checklist.push({t:v,n:"",d:false});rp()}
+  else if(act==="delck"){n.checklist.splice(i,1);rp()}
+});
+document.addEventListener("dblclick",e=>{const nd=e.target.closest(".node");if(!nd||tab!=="map")return;const id=nd.dataset.id;if(!kids(id).length)return;collapsed.has(id)?collapsed.delete(id):collapsed.add(id);renderView()});
+let rt=null;const later=()=>{clearTimeout(rt);rt=setTimeout(()=>refresh(true),350)};
+document.addEventListener("input",e=>{
+  const t=e.target,n=nodes[sel];
+  if(t.id==="q"){search=t.value;renderView();const x=$("#q");x.focus();x.setSelectionRange(search.length,search.length);return}
+  if(t.id==="gWer"){gapWer=t.value;renderGaps($("#view"));const x=$("#gWer");x.focus();x.setSelectionRange(gapWer.length,gapWer.length);return}
+  if(!n||!$("#panel").contains(t))return;
+  if(t.dataset.q){n.q[t.dataset.q]=t.value;save(n);later()}
+  else if("name" in t.dataset){n.name=t.value;save(n);later()}
+  else if(t.dataset.fr!==undefined){n.fristen[+t.dataset.fr][t.dataset.f]=t.value;save(n)}
+});
+document.addEventListener("change",e=>{
+  const t=e.target,n=nodes[sel];
+  if(t.id==="gArea"){gapArea=t.value;renderGaps($("#view"));return}
+  if(!n||!$("#panel").contains(t))return;
+  if("status" in t.dataset){n.status=t.value;save(n);refresh()}
+  else if("h" in t.dataset){n.h=t.value?+t.value:null;save(n);refresh()}
+  else if("a" in t.dataset){n.a=t.value?+t.value:null;save(n);refresh()}
+  else if(t.dataset.cd!==undefined){n.checklist[+t.dataset.cd].d=t.checked;save(n);refresh()}
+  else if(t.dataset.fr!==undefined){n.fristen[+t.dataset.fr][t.dataset.f]=t.value;save(n)}
+});
+$("#fileXlsx").addEventListener("change",e=>{const f=e.target.files[0];if(f)importXlsx(f);e.target.value=""});
+$("#fileJson").addEventListener("change",async e=>{
+  const f=e.target.files[0];if(!f)return;
+  try{const arr=JSON.parse(await f.text());if(!Array.isArray(arr))throw new Error("Falsches Format");await saveMany(arr.map(norm));refresh();toast(arr.length+" Kacheln importiert")}catch(x){toast("Import fehlgeschlagen: "+x.message)}
+  e.target.value="";
+});
+init();
+</script>
+</body>
+</html>
