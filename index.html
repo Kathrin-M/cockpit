@@ -28,7 +28,7 @@ h1.big{font-size:40px;line-height:1.15;font-weight:800;color:var(--brand);margin
 .ph small{font-weight:800;letter-spacing:.2em;color:var(--leaf);font-size:11px}.ph h3{margin:4px 0;font-size:21px;font-weight:800;color:var(--brand);text-transform:none;letter-spacing:0}.ph p{margin:6px 0 0;color:#6b7c88}
 .phases{display:grid;grid-template-columns:1fr auto 1fr auto 1fr auto 1fr auto 1fr;gap:10px;align-items:stretch;margin-top:18px}.phases .ar{align-self:center;color:var(--leaf);font-size:22px;font-weight:800}
 @media(max-width:900px){.phases{grid-template-columns:1fr}.phases .ar{display:none}}
-.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(290px,1fr));gap:16px;margin-top:30px}
+.tiles{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:30px}
 .tile{display:flex;flex-direction:column;align-items:flex-start;justify-content:flex-start;border-radius:18px;background:var(--light);padding:22px;cursor:pointer;transition:.15s;border:0;text-align:left;font:inherit;color:inherit;width:100%}.tile:hover{box-shadow:0 6px 18px rgba(0,0,0,.1);transform:translateY(-1px)}
 .tile h3{margin:0 0 4px;font-size:20px;font-weight:800;color:var(--brand);text-transform:none;letter-spacing:0}.tile p{margin:0;color:#6b7c88;font-size:13.5px}
 .tile .st{display:inline-block;margin-top:10px;padding:2px 10px;border-radius:99px;background:#fff;color:var(--brand);font-weight:800;font-size:12px}.tile .st.red{background:var(--red);color:#fff}.tile .st.gr{background:#6ea015;color:#fff}
@@ -58,7 +58,7 @@ tr.link{cursor:pointer}tr.link:hover{background:var(--light)}
 .node.sel{box-shadow:0 0 0 3px rgba(56,103,132,.35)}
 .node.company,.node.area{background:var(--brand);color:#fff;border-color:var(--brand)}
 .node.area.red{border-color:var(--red);box-shadow:0 0 0 2px var(--red)}
-.node .t{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.node .t{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;line-height:1.15}.node .lv{display:block;font-size:8.5px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;opacity:.65}.node.step{border-left-width:6px}#mapwrap{cursor:grab}#mapwrap.pan{cursor:grabbing;user-select:none}
 .node .c{font-size:10.5px;font-weight:700;color:#6b7c88;white-space:nowrap}
 .node.company .c,.node.area .c{color:#d6e5ee}
 .node .tg{width:18px;height:18px;border-radius:50%;background:var(--light);color:var(--brand);text-align:center;line-height:18px;font-size:11px;flex:none}
@@ -104,8 +104,8 @@ button.btn.sm{padding:6px 10px}
 </head>
 <body>
 <header>
-  <div id="back"></div>
-  <div class="hr"><span id="mode" class="badge"></span><span id="topstatus" class="badge"></span><div class="logo">EIGENHEIM<span>-glück</span></div></div>
+  <div style="display:flex;align-items:center;gap:12px"><span id="mode" class="badge"></span><div id="back"></div></div>
+  <div class="hr"><div class="logo">EIGENHEIM<span>-glück</span></div></div>
 </header>
 <main id="view"></main>
 <aside id="panel"></aside>
@@ -264,9 +264,6 @@ async function loadSeed(silent){
 function refresh(fromRemote){
   GAPS=computeGaps();
   const root=Object.values(nodes).find(n=>!n.parent), g=root?GAPS[root.id]:null;
-  const ts=$("#topstatus");
-  if(g&&g.state==="green"){ts.textContent="Ist-Stand validiert";ts.className="badge b-gr"}
-  else{ts.textContent="Ist-Stand nicht validiert: "+(g?g.total-g.done:0)+" von "+(g?g.total:0)+" offen";ts.className="badge b-red"}
   $("#nodelist").innerHTML=Object.values(nodes).filter(COUNTS).map(n=>`<option value="${esc(pathStr(n.id))}">`).join("");
   renderTabs();renderPage();
   if(sel&&nodes[sel]){ if(!fromRemote||!$("#panel").contains(document.activeElement)) renderPanel(); } else if(sel){sel=null;$("#panel").classList.remove("open")}
@@ -294,6 +291,7 @@ function renderPage(){renderView();const v=$("#view");if(TITLES[tab])v.insertAdj
 const dotc = s => `<span class="dot ${s}"></span>`;
 
 const COLW=262,ROWH=46;
+const LVN={company:"Unternehmen",area:"Bereich",main:"Hauptprozess",sub:"Teilprozess",step:"Schritt"};
 function renderMap(v){
   const old=$("#mapwrap");const scroll=old?[old.scrollLeft,old.scrollTop]:[0,0];
   v.innerHTML=`<div class="bar">
@@ -301,7 +299,7 @@ function renderMap(v){
     <button class="btn ghost" data-act="collapse">Alles zuklappen</button>
     <button class="btn ${onlyGaps?"red":"ghost"}" data-act="gaps">Nur Lücken anzeigen</button>
     <input id="q" placeholder="Suchen …" value="${esc(search)}" style="max-width:240px">
-    <span class="muted">Klick = öffnen · Doppelklick = auf-/zuklappen · Rahmen: <span class="dot red"></span> Lücke <span class="dot orange"></span> ausgefüllt, nicht bestätigt <span class="dot green"></span> vollständig</span>
+    <span class="muted">Ziehen = Mindmap verschieben · Klick = öffnen · Doppelklick = auf-/zuklappen · Rahmen: <span class="dot red"></span> Lücke <span class="dot orange"></span> ausgefüllt, nicht bestätigt <span class="dot green"></span> vollständig</span>
   </div><div id="mapwrap"><div id="map"></div></div>`;
   const pos={};let y=0,maxd=0;
   const q=search.trim().toLowerCase();
@@ -332,7 +330,7 @@ function renderMap(v){
     const st=(n.level==="company"?"":g.state);
     html+=`<div class="node ${n.level} ${st} ${sel===id?"sel":""}" data-id="${id}" style="left:${x}px;top:${yy}px" title="${esc(n.name)}">
       ${COUNTS(n)&&ownState(n)==="red"?'<span class="rd"></span>':""}
-      <span class="t">${esc(n.name)}</span><span class="c">${cnt}</span>
+      <span class="t"><small class="lv">${LVN[n.level]||""}</small>${esc(n.name)}</span><span class="c">${cnt}</span>
       ${hasK?`<span class="tg" data-tg="${id}">${(q||!collapsed.has(id))?"–":"+"}</span>`:""}</div>`;
   }
   $("#map").style.cssText=`width:${W}px;height:${H}px`;
@@ -395,18 +393,18 @@ function renderHome(v){
   const gaps=gapRows().length,prot=Object.values(extra).filter(e=>e.kind==="protocol").length,ideas=Object.values(extra).filter(e=>e.kind==="idea").length;
   const deps=Object.values(nodes).filter(n=>(n.deps||[]).length||(n.fristen||[]).length).length;
   const PH=[["Verstehen","Wie funktioniert das Unternehmen heute wirklich?"],["Strukturieren","Wie soll es künftig sein, und wer trägt wofür Verantwortung?"],["Umsetzen","Wie kommt das Festgelegte in den Alltag?"],["Steuern","Woher wissen wir, ob wir auf Kurs sind?"],["Verbessern","Was lernen wir daraus?"]];
-  const tile=(t,h,p,st,cls)=>`<button class="tile" data-tab="${t}"><h3>${h}</h3><p>${p}</p>${st?`<span class="st ${cls||""}">${st}</span>`:""}</button>`;
+  const tile=(t,h,p,st,cls)=>`<button class="tile" data-tab="${t}"><h3>${h}</h3>${st&&cls?`<span class="st ${cls}">${st}</span>`:""}</button>`;
   v.innerHTML=`<h1 class="big">Von Strategie zu funktionierender Organisation</h1>
   <div style="display:flex;justify-content:center;margin-top:26px"><div class="ph off" style="max-width:380px;width:100%"><small>PHASE 0</small><h3>Ausrichten</h3><p>Wo wollen wir hin und wie wollen wir arbeiten?</p></div></div>
   <div class="phases">${PH.map((x,i)=>`${i?'<span class="ar">→</span>':""}<div class="ph ${i?"off":"on"}" ${i?"":'data-tab="start"'}><small>PHASE ${i+1}</small><h3>${x[0]}</h3><p>${x[1]}</p>${i?'<p style="font-weight:800;font-size:12px">Kommt bald</p>':`<div class="pbar" style="margin-top:12px"><div style="width:${pc}%"></div></div><p style="font-size:12px">${pc}% bestätigt</p>`}</div>`).join("")}</div>
   <div class="tiles">
    ${tile("map","Prozess visualisieren","Die Mindmap vom Unternehmen bis zum einzelnen Schritt",all.length+" Kacheln")}
+   ${tile("prot","Wöchentlicher Austausch","Protokolle, Aufgaben und nächste Schritte",prot+" Protokolle")}
+   ${tile("fahrplan","Fahrplan","Meilensteine der Phase Verstehen",(()=>{const m=Object.values(extra).filter(e=>e.kind==="milestone").sort((a,b)=>a.date.localeCompare(b.date))[0];return m?"nächster: "+m.date.slice(8)+"."+m.date.slice(5,7)+". "+m.title:""})())}
    ${tile("ist","Ist-Stand auf einen Blick","Fortschritt je Bereich und Hauptprozess",open?open+" offen":"validiert",open?"red":"gr")}
    ${tile("gaps","Lücken","Was noch fehlt, filterbar und als CSV",gaps+" mit Lücke",gaps?"red":"gr")}
    ${tile("eng","Engpässe","Bewerten nach Häufigkeit und Auswirkung",rated+" bewertet")}
    ${tile("dep","Abhängigkeiten und Fristen","Worauf wartet was, welche Fristen gelten",deps+" Einträge")}
-   ${tile("fahrplan","Fahrplan","Meilensteine der Phase Verstehen",(()=>{const m=Object.values(extra).filter(e=>e.kind==="milestone").sort((a,b)=>a.date.localeCompare(b.date))[0];return m?"nächster: "+m.date.slice(8)+"."+m.date.slice(5,7)+". "+m.title:""})())}
-   ${tile("prot","Wöchentlicher Austausch","Protokolle, Aufgaben und nächste Schritte",prot+" Protokolle")}
    ${tile("data","Daten","Export, Import und Sicherung","")}
   </div>`;
 }
@@ -438,55 +436,25 @@ function renderStart(v){
    ${box("ABSCHLUSSKRITERIUM","Diese Phase ist ausreichend bearbeitet, wenn die wesentlichen Abläufe, Rollen und Zusammenhänge sichtbar sind und die wichtigsten Engpässe benannt werden können.")}
   </div>
   <p><button class="btn leaf" data-tab="map">Zur Prozess-Mindmap</button></p>
-  <div class="grid">
-    <div class="card"><b>So steht es</b><br>${all.length} Kacheln, davon <b>${done}</b> vollständig und <b>${all.length-done}</b> mit Lücke.<br>${sugN} Kacheln haben noch Vorschläge aus den Listen.<br>${rated} Engpässe bewertet.</div>
-    <div class="card"><b>Nächster Schritt</b><br>${withSug?`<button class="btn leaf" data-focus="${withSug.id}">Vorschläge prüfen: ${esc(withSug.name)}</button><br>`:""}${first?`<button class="btn ghost" data-focus="${first.id}" style="margin-top:6px">Nächste Lücke: ${esc(first.name)}</button>`:"Alles vollständig. Weiter mit „Weg zum Soll“."}</div>
-  </div>
-  <h3>In fünf Handgriffen</h3>
-  <ol style="line-height:1.7"><li><b>Kachel öffnen</b> (Reiter Mindmap, Klick auf die Kachel; Doppelklick klappt die Ebene darunter auf).</li>
-  <li><b>Vorschläge prüfen:</b> Gelb hinterlegte Vorschläge stammen aus den Listen. „Übernehmen“ klickt sie in die Antwort. Im Gespräch korrigieren, wenn es anders läuft.</li>
-  <li><b>Rote Felder füllen:</b> Das sind die Pflichtfragen, die noch fehlen. Nur aufschreiben, nicht optimieren.</li>
-  <li><b>Rückspiegeln:</b> Status auf „Rückgespiegelt“, wenn die Beteiligten es gesehen haben, dann auf „Bestätigt“. Erst dann wird die Kachel grün.</li>
-  <li><b>Engpass bewerten:</b> Wo es hakt, Häufigkeit und Auswirkung (1–3) eintragen. Ideen zur Lösung gehören in die Ideenliste, noch nicht in die Aufnahme.</li></ol>
-  <details open><summary>Der Ablauf der Phase in sieben Schritten</summary>${T(["Schritt","Ziel","Ergebnis"],[
-   ["1 Vorbereiten (Woche 1)","Rahmen, Termine und Werkzeuge stehen, Führungskräfte sind informiert","Terminplan, Aufnahmevorlage, Ablageort"],
-   ["2 Bereiche und Hauptprozesse sammeln","Pro Bereich Hauptprozesse mit Auslöser und Ergebnis","Hauptprozessliste je Bereich (hier bereits aus den Listen vorbefüllt)"],
-   ["3 Aufnahmegespräche (Woche 2–4)","Beteiligte erzählen, wie es wirklich läuft (45–60 Min. je Hauptprozess)","Notizen oder Transkript"],
-   ["4 Doppelklick","Hauptprozess bis zur Stopp-Regel herunterbrechen","Ist-Ablauf mit Verantwortlichen, Unterlagen, Fristen"],
-   ["5 Festhalten","Eine einheitliche Seite je Prozess (die Detailansicht hier)","Status Aufgenommen"],
-   ["6 Rückspiegeln (Woche 4–5)","Beteiligte bestätigen: So läuft es","Status Bestätigt (Version 0.9)"],
-   ["7 Engpässe sammeln (Woche 5–6)","Die drei größten je Bereich benennen, noch nicht lösen","Engpassliste, freigegebener Ist-Stand"]])}</details>
-  <details><summary>Doppelklick und Stopp-Regel</summary><p>Ebenen: Unternehmen → Bereich → Hauptprozess → Teilprozess → einzelner Schritt. Tief genug ist es, wenn eine neue Person den Schritt anhand der Beschreibung ausführen könnte. Ein Schritt ist eine Person, eine Handlung, ein Ergebnis, meist zwischen 5 Minuten und einem Tag. Zu tief ist eine Klick-für-Klick-Anleitung, zu flach sind Wörter wie „Abstimmung“ ohne Inhalt. Wo es hakt oder oft vorkommt, geht es tiefer, der Rest reicht bis zum Teilprozess.</p></details>
-  <details><summary>Gesprächsleitfaden (45–60 Minuten)</summary>${T(["Teil","Dauer","Was passiert"],[
-   ["Einstieg","5 Min.","Zweck erklären: verstehen, nicht bewerten. Erlaubnis für Notizen oder Transkript einholen."],
-   ["Erzählen","15 Min.","Der letzte echte Fall von Anfang bis Ende. Kaum unterbrechen, mitschreiben."],
-   ["Nachfragen","25 Min.","Erst die Kernfragen, dann die Detailfragen, dort nachbohren, wo Lücken blieben."],
-   ["Abschluss","5–10 Min.","Zusammenfassen. Wer macht noch mit? Welche Dokumente kann ich sehen? Termin zum Rückspiegeln."]])}
-  <h3>Die zwölf Fragen</h3>${T(["Frage","Nachfrage","Zeigt"],[
-   ["1 Was löst den Prozess aus?","Woher weißt du, dass es losgeht?","Startpunkt"],["2 Was soll am Ende herauskommen?","Woran siehst du, dass es fertig ist?","Ziel"],["3 Welche Schritte gibt es, in welcher Reihenfolge?","Und was kommt dann? Was passiert davor?","Ablauf (entsteht hier aus den Kacheln darunter)"],
-   ["4 Wer ist beteiligt?","Wer noch? Wer bekommt das Ergebnis?","Schnittstellen"],["5 Welche Informationen und Dokumente braucht es?","Was muss vorliegen, bevor es weitergeht?","Voraussetzungen"],["6 Wo hakt es heute?","Wo verlierst du am meisten Zeit?","Engpässe"],
-   ["7 Wer macht welchen Schritt, wer gibt frei?","Wer entscheidet im Zweifel?","Zuständigkeiten"],["8 Wo werden Informationen und Dokumente abgelegt?","Wo findet das jemand anderes?","Wissen im Kopf oder Postfach"],["9 Welche Schritte hängen voneinander ab, gibt es Fristen?","Worauf wartest du?","Abhängigkeiten, Wartezeiten"],
-   ["10 Welche Ausnahmen gibt es?","Wann lief es zuletzt anders?","Abweichung vom Idealablauf"],["11 Wie oft kommt der Schritt vor, wie lange dauert er?","Pro Woche? Pro Auftrag?","Prioritäten"],["12 Welche Rückfragen kommen immer wieder?","Was fragen dich alle?","Undokumentiertes Wissen"]])}
-  <h3>Das tun wir / Das tun wir nicht</h3>${T(["Das tun wir","Das tun wir nicht"],[["Echte Fälle erzählen lassen","Idealablauf abfragen"],["Nachfragen: Und dann? Wer genau?","Lösungen vorschlagen oder bewerten"],["Wörtlich notieren, wie es gesagt wird","In eigene Fachsprache übersetzen"],["Verbesserungsideen auf die Ideenliste schreiben","Sofort optimieren"]])}</details>
-  <details><summary>Qualitätscheck (je Prozess, in der Detailansicht abhakbar)</summary><ul><li>Auslöser und Ergebnis sind klar benannt.</li><li>Alle Schritte stehen in Reihenfolge, mit Verantwortlichem und Freigabe.</li><li>Unterlagen und Ablageort sind angegeben.</li><li>Fristen, Wartezeiten und Abhängigkeiten sind erfasst.</li><li>Ausnahmen und Fehlerfälle sind benannt.</li><li>Mindestens eine Person, die den Schritt wirklich ausführt, wurde befragt (nicht nur die Führungskraft).</li><li>Eine neue Person könnte den Ablauf nachvollziehen.</li></ul></details>
-  <details><summary>Wie die Excel-Listen die Fragen beantworten helfen</summary><p>Aus der Vertriebsliste kommen: wer beteiligt ist (Rolle je Schritt), welche Aktionen etwas auslösen (Trigger), Fristen (max. 3 Kundentermine, 10 Arbeitstage Entwurf, 4 Arbeitstage Angebot, 20 Wochen vor Hausmontage), Unterlagen (Kontaktformular, Protokolle, Freigabeliste, AB) und Ablageorte (Kanbau, Projektordner). Aus der Werkplanungsliste kommen die Schritte und 182 Prüfpunkte als Checklisten. Aus dem Prozessfoto kommen Hinweise auf Engpässe (fehlende Infos, kritischer Übergabepunkt, „auf Zuruf“). Nichts davon ist eine Antwort, bevor du es im Gespräch bestätigst.</p></details>`;
+`;
 }
 function renderFahrplan(v){
   const list=Object.values(extra).filter(e=>e.kind==="milestone").sort((a,b)=>a.date.localeCompare(b.date));
   const fd=d=>{const [y,m,t]=d.split("-");return t+"."+m+"."};
-  v.innerHTML=`<p class="muted" style="max-width:760px">Die Meilensteine der Phase Verstehen. Neue Termine trägst du unten ein.</p>
-  <div class="card" style="max-width:760px"><ol style="list-style:none;margin:0;padding:0 0 0 22px;border-left:3px solid var(--leaf)">${list.map(m=>`<li style="margin:0 0 18px;position:relative"><span style="position:absolute;left:-31px;top:2px;width:14px;height:14px;border-radius:50%;background:var(--leaf);border:3px solid #fff"></span><div style="font-weight:800;color:var(--leaf)">bis ${fd(m.date)}${m.date.slice(0,4)}</div><div style="font-weight:800;font-size:17px">${esc(m.title)}</div><div class="muted">${esc(m.text||"")}</div><span class="x" data-act="msdel" data-id="${m.id}">entfernen</span></li>`).join("")||'<li class="muted">Noch keine Meilensteine.</li>'}</ol></div>
+  v.innerHTML=`<div class="card" style="max-width:760px"><ol style="list-style:none;margin:0;padding:0 0 0 22px;border-left:3px solid var(--leaf)">${list.map(m=>`<li style="margin:0 0 18px;position:relative"><span style="position:absolute;left:-31px;top:2px;width:14px;height:14px;border-radius:50%;background:var(--leaf);border:3px solid #fff"></span><div style="font-weight:800;color:var(--leaf)">bis ${fd(m.date)}${m.date.slice(0,4)}</div><div style="font-weight:800;font-size:17px">${esc(m.title)}</div><div class="muted">${esc(m.text||"")}</div><span class="x" data-act="msdel" data-id="${m.id}">entfernen</span></li>`).join("")||'<li class="muted">Noch keine Meilensteine.</li>'}</ol></div>
   <div class="row" style="max-width:760px"><input type="date" id="msDate" class="sm"><input id="msTitle" placeholder="Meilenstein"><input id="msText" placeholder="Beschreibung (optional)"><button class="btn sm" data-act="msadd">+</button></div>`;
 }
-let protClosed=new Set();
+let protOpen=new Set();
 function fmtD(d){const [y,m,t]=(d||"").split("-");return t?t+"."+m+"."+y:d}
 function renderProt(v){
   const list=Object.values(extra).filter(e=>e.kind==="protocol").sort((a,b)=>b.number-a.number);
   const note=(p,f,l,col,ico)=>`<div class="pn" style="border-left-color:${col}"><div class="pnh">${l}${ico||""}</div><textarea data-pid="${p.id}" data-pf="${f}">${esc(p[f]||"")}</textarea></div>`;
   v.innerHTML=`<div class="bar" style="justify-content:space-between;align-items:flex-start"><div><h1 class="pt" style="margin:0">Wöchentlicher Austausch</h1><div class="muted">Offene Aufgaben des letzten Protokolls werden automatisch übernommen.</div></div><button class="btn leaf" data-act="padd">+ Neues Protokoll</button></div>`+
-  list.map(p=>{const open=!protClosed.has(p.id);return `<div class="pcard"><div class="phead" data-act="ptoggle" data-id="${p.id}"><span>${open?"⌄":"›"}</span><b>Protokoll vom</b><input type="date" data-pid="${p.id}" data-pf="date" value="${esc(p.date)}"><span class="spacer"></span><span class="pdel" data-act="pdel" data-id="${p.id}">Löschen</span></div>
+  list.map(p=>{const open=protOpen.has(p.id);return `<div class="pcard"><div class="phead" data-act="ptoggle" data-id="${p.id}"><span>${open?"⌄":"›"}</span><b>Protokoll vom</b><input type="date" data-pid="${p.id}" data-pf="date" value="${esc(p.date)}"><span class="spacer"></span><span class="pdel" data-act="pdel" data-id="${p.id}">Löschen</span></div>
   ${open?`<div class="pbody"><div class="pleft"><div class="plh">VEREINBART BIS ZUM NÄCHSTEN TERMIN, ERLEDIGT?</div>
-   ${p.tasks.map((t,i)=>`<div class="ck ${t.d?"done":""}"><input type="checkbox" data-pid="${p.id}" data-pdone="${i}" ${t.d?"checked":""}><span style="flex:1">${esc(t.t)}${t.src||t.from?` <small class="ptag">${esc(t.src||"aus Protokoll "+t.from)}</small>`:""}</span><span class="pcar ${t.carry?"on":""}" title="In das nächste Protokoll übertragen" data-act="pcarry" data-id="${p.id}" data-i="${i}">⟳</span><span class="x" data-act="ptdel" data-id="${p.id}" data-i="${i}">✕</span></div>`).join("")}
+   ${(()=>{const row=(t,i)=>`<div class="ck ${t.d?"done":""}"><input type="checkbox" data-pid="${p.id}" data-pdone="${i}" ${t.d?"checked":""}><span style="flex:1">${esc(t.t)}${!t.src&&t.from?` <small class="ptag">aus Protokoll vom ${fmtD((Object.values(extra).find(e=>e.kind==="protocol"&&e.number===t.from)||{}).date)}</small>`:""}</span><span class="pcar ${t.carry?"on":""}" title="In das nächste Protokoll übertragen" data-act="pcarry" data-id="${p.id}" data-i="${i}">⟳</span><span class="x" data-act="ptdel" data-id="${p.id}" data-i="${i}">✕</span></div>`;
+    let h=p.tasks.map((t,i)=>t.src?"":row(t,i)).join("");const gs=[...new Set(p.tasks.filter(t=>t.src).map(t=>t.src))];
+    gs.forEach(g=>{h+=`<div class="plh" style="margin-top:14px;text-transform:none;letter-spacing:0;font-size:13px">${esc(g.charAt(0).toUpperCase()+g.slice(1))}</div><div style="border-left:3px solid #cfdcd8;padding-left:10px">`+p.tasks.map((t,i)=>t.src===g?row(t,i):"").join("")+"</div>"});return h})()}
    <input id="pt-${p.id}" class="padd" placeholder="Punkt hinzufügen …"></div>
   <div class="pgrid">${note(p,"worked","WAS HAT FUNKTIONIERT?","#95C11F")}${note(p,"notWorked","WAS HAT NICHT FUNKTIONIERT?","#D9534F")}${note(p,"why","WORAN LAG ES?","#D9534F")}${note(p,"next","NÄCHSTE SCHRITTE / ZIEL","#E3B505"," 🚀")}</div></div>`:""}</div>`}).join("")||'<p class="muted">Noch keine Protokolle.</p>';
 }
@@ -546,23 +514,26 @@ function renderPanel(){
   <h3>Checkliste</h3>
   ${n.checklist.map((c,i)=>`<div class="ck ${c.d?"done":""}"><input type="checkbox" data-cd="${i}" ${c.d?"checked":""}><span>${esc(c.t)}${c.n?` <i class="muted">→ ${esc(c.n)}</i>`:""}</span><span class="x" data-act="delck" data-i="${i}">✕</span></div>`).join("")}
   <div class="row"><input id="ckIn" placeholder="Neuer Prüfpunkt"><button class="btn sm" data-act="addck">+</button></div>
-  <h3>Quelle und Qualitätscheck (Coach)</h3>
-  <div class="q"><label>Gesprächsquelle <span class="req-tag">Wer hat es erzählt, wann?</span></label><input data-src value="${esc(n.src||"")}" placeholder="z. B. Thomas, 21.10.2026"></div>
-  ${QCL.map((t,i)=>`<div class="ck"><input type="checkbox" data-qc="${i}" ${n.qc[i]?"checked":""}><span>${t}</span></div>`).join("")}
   <h3>Engpass-Bewertung</h3>
   <div class="row"><select data-h><option value="">Häufigkeit</option>${[1,2,3].map(i=>`<option value="${i}" ${n.h==i?"selected":""}>${i} ${["selten","manchmal","fast immer"][i-1]}</option>`).join("")}</select>
   <select data-a><option value="">Auswirkung</option>${[1,2,3].map(i=>`<option value="${i}" ${n.a==i?"selected":""}>${i} ${["gering","spürbar","verzögert / kostet Geld"][i-1]}</option>`).join("")}</select>
   <b class="sm">${n.h&&n.a?"Score "+n.h*n.a:""}</b></div>
   <div class="ck"><input type="checkbox" data-pilot ${n.pilot?"checked":""}><span>Pilotprozess für den Soll-Entwurf (Strukturieren)</span></div>
-  <h3>Soll und Automation (später, in Strukturieren)</h3>
-  <div class="q"><label>Soll-Änderung <span class="req-tag">Was soll künftig anders laufen?</span></label><textarea data-soll>${esc(n.soll||"")}</textarea></div>
-  <div class="row"><select data-auto><option value="">Automatisierbar?</option>${["nein","Planner","n8n"].map(o=>`<option ${n.auto===o?"selected":""}>${o}</option>`).join("")}</select></div>`:""}
+  `:""}
+  ${n.parent?`<h3>Einordnung ändern</h3>
+  <div class="muted" style="margin-bottom:4px">Hier legst du fest, was diese Kachel ist und wo sie hingehört. Unterkacheln wandern mit.</div>
+  <div class="row"><select id="mvLv">${["area","main","sub","step"].map(l=>`<option value="${l}" ${n.level===l?"selected":""}>${LV[l]}</option>`).join("")}</select>
+  <select id="mvPar">${mvOpts(n.level,n.id)}</select><button class="btn sm" data-act="movenode">Verschieben</button></div>`:""}
   <h3>Aktionen</h3>
   <div class="row">${CHILD[n.level]?`<button class="btn leaf" data-act="addchild">+ ${LV[CHILD[n.level]]} darunter</button>`:""}${n.parent?`<button class="btn red sm" data-act="delnode">Löschen</button>`:""}</div>
   ${n.source?`<p class="muted">Quelle: ${esc(n.source)}</p>`:""}`;
   p.classList.add("open");
 }
 
+const LORD=["company","area","main","sub","step"];
+function descIds(id){const r=[];const w=i=>kids(i).forEach(k=>{r.push(k.id);w(k.id)});w(id);return r}
+function mvOpts(lv,id){const pl=LORD[LORD.indexOf(lv)-1];const bad=new Set([id,...descIds(id)]);const cur=nodes[id].parent;
+  return Object.values(nodes).filter(x=>x.level===pl&&!bad.has(x.id)).sort((a,b)=>pathStr(a.id).localeCompare(pathStr(b.id))).map(x=>`<option value="${x.id}" ${x.id===cur?"selected":""}>${esc(x.parent?pathStr(x.id):x.name)}</option>`).join("")}
 function select(id,focus){
   sel=id;
   if(focus){let c=nodes[id];while(c&&c.parent){c=nodes[c.parent];collapsed.delete(c.id)}tab="map";search="";onlyGaps=false}
@@ -632,7 +603,7 @@ document.addEventListener("click",async e=>{
     nums.forEach(t=>{if(!carried.some(c=>c.t===t))carried.push({t,d:false,src:"aus Nächste Schritte / Ziel vom "+fmtD(last.date)})});
     const num=(last?last.number:0)+1;saveExtra({id:"x-prot-"+num+"-"+uid(),kind:"protocol",number:num,date:new Date().toISOString().slice(0,10),tasks:carried,worked:"",notWorked:"",why:"",next:""});renderPage()}
   else if(act==="pdel"){if(confirm("Dieses Protokoll löschen?")){await removeExtra(b.dataset.id);renderPage()}}
-  else if(act==="ptoggle"){if(t.closest("input,.pdel"))return;const id=b.dataset.id;protClosed.has(id)?protClosed.delete(id):protClosed.add(id);renderPage()}
+  else if(act==="ptoggle"){if(t.closest("input,.pdel"))return;const id=b.dataset.id;protOpen.has(id)?protOpen.delete(id):protOpen.add(id);renderPage()}
   else if(act==="pcarry"){const p=extra[b.dataset.id],tk=p.tasks[i];tk.carry=!tk.carry;const nx=Object.values(extra).filter(e=>e.kind==="protocol"&&e.number>p.number).sort((a,c)=>a.number-c.number)[0];
     if(nx){nx.tasks=nx.tasks.filter(x=>x.t!==tk.t||x.d);if(tk.carry&&!tk.d)nx.tasks.unshift({t:tk.t,d:false,from:tk.from||p.number});saveExtra(nx)}saveExtra(p);renderPage()}
   else if(act==="ptadd"){const e=extra[b.dataset.id];const inp=$("#pt-"+b.dataset.id);if(inp.value.trim()){e.tasks.push({t:inp.value.trim(),d:false});saveExtra(e);renderPage()}}
@@ -654,6 +625,11 @@ document.addEventListener("click",async e=>{
   else if(act==="seed")loadSeed();
   else if(act==="wipe"){if(confirm("Wirklich ALLE Kacheln löschen?")&&confirm("Letzte Warnung: das kann nicht rückgängig gemacht werden.")){await removeIds([...Object.keys(nodes),...Object.keys(extra)]);extra={};sel=null;refresh()}}
   else if(act==="addchild"){const c=CHILD[n.level];const nn=norm({id:uid(),parent:n.id,level:c,name:"Neue Kachel",ord:kids(n.id).length,q:{}});nodes[nn.id]=nn;collapsed.delete(n.id);save(nn);sel=nn.id;refresh()}
+  else if(act==="movenode"){const lv=$("#mvLv").value,pid=$("#mvPar").value;if(!pid){toast("Bitte eine Kachel wählen, unter die sie gehört.");return}
+    const delta=LORD.indexOf(lv)-LORD.indexOf(n.level),ds=descIds(n.id);
+    if(ds.some(i=>LORD.indexOf(nodes[i].level)+delta>4||LORD.indexOf(nodes[i].level)+delta<2)){toast("Geht nicht: Die Unterkacheln hätten dann keine passende Ebene mehr.");return}
+    n.level=lv;n.parent=pid;n.ord=kids(pid).length;ds.forEach(i=>{nodes[i].level=LORD[LORD.indexOf(nodes[i].level)+delta]});
+    [n.id,...ds].forEach(i=>save(nodes[i]));let c=nodes[pid];while(c){collapsed.delete(c.id);c=nodes[c.parent]}tab="map";refresh();toast("Verschoben nach „"+nodes[pid].name+"“.")}
   else if(act==="delnode"){if(!confirm("„"+n.name+"“ mit allen Unterkacheln löschen?"))return;const ids=[];const w=id=>{ids.push(id);kids(id).forEach(k=>w(k.id))};w(n.id);sel=null;await removeIds(ids);refresh()}
   else if(act==="adddep"){const v=$("#depIn").value.trim();if(!v)return;const hit=Object.values(nodes).find(x=>COUNTS(x)&&pathStr(x.id)===v);n.deps.push({ref:hit?hit.id:null,text:v,art:$("#depArt").value});rp()}
   else if(act==="deldep"){n.deps.splice(i,1);rp()}
@@ -691,6 +667,7 @@ document.addEventListener("change",e=>{
   else if(t.dataset.cd!==undefined){n.checklist[+t.dataset.cd].d=t.checked;save(n);refresh()}
   else if(t.dataset.fr!==undefined){n.fristen[+t.dataset.fr][t.dataset.f]=t.value;save(n)}
 });
+document.addEventListener("change",e=>{if(e.target.id==="mvLv"&&sel&&nodes[sel])$("#mvPar").innerHTML=mvOpts(e.target.value,sel)});
 document.addEventListener("keydown",e=>{const t=e.target;if(e.key==="Enter"&&t.classList&&t.classList.contains("padd")){const id=t.id.slice(3),p=extra[id];if(t.value.trim()){p.tasks.push({t:t.value.trim(),d:false});saveExtra(p);renderPage();setTimeout(()=>{const x=$("#pt-"+id);if(x)x.focus()},0)}}});
 $("#fileXlsx").addEventListener("change",e=>{const f=e.target.files[0];if(f)importXlsx(f);e.target.value=""});
 $("#fileJson").addEventListener("change",async e=>{
@@ -699,6 +676,13 @@ $("#fileJson").addEventListener("change",async e=>{
   e.target.value="";
 });
 init();
+
+(()=>{let st=null,moved=false;
+document.addEventListener("mousedown",e=>{const w=e.target.closest("#mapwrap");if(!w||e.target.closest(".tg"))return;st={w,x:e.clientX,y:e.clientY,l:w.scrollLeft,t:w.scrollTop};moved=false});
+document.addEventListener("mousemove",e=>{if(!st)return;const dx=e.clientX-st.x,dy=e.clientY-st.y;if(!moved&&Math.abs(dx)+Math.abs(dy)<6)return;moved=true;st.w.classList.add("pan");st.w.scrollLeft=st.l-dx;st.w.scrollTop=st.t-dy});
+document.addEventListener("mouseup",()=>{if(st){st.w.classList.remove("pan");st=null}});
+document.addEventListener("click",e=>{if(moved){e.stopPropagation();e.preventDefault();moved=false}},true);
+})();
 </script>
 </body>
 </html>
