@@ -53,12 +53,14 @@ tr.link{cursor:pointer}tr.link:hover{background:var(--light)}
 #mapwrap{position:relative;overflow:auto;border:1px solid #e0ebe8;border-radius:18px;height:calc(100vh - 210px);min-height:420px;background:#fff}
 #map{position:relative}
 #map svg{position:absolute;left:0;top:0;pointer-events:none}
-.node{position:absolute;width:226px;height:36px;border-radius:12px;font-family:inherit;border:2.5px solid var(--grey);background:#fff;padding:0 8px;display:flex;align-items:center;gap:6px;cursor:pointer;font-size:12.5px;font-weight:700;color:var(--text);box-shadow:0 1px 3px rgba(0,0,0,.08)}
+.node{position:absolute;width:226px;height:36px;border-radius:12px;font-family:inherit;border:2.5px solid var(--grey);background:#fff;padding:7px 8px;display:flex;align-items:center;gap:6px;cursor:pointer;font-size:12.5px;font-weight:700;color:var(--text);box-shadow:0 1px 3px rgba(0,0,0,.08)}
 .node.red{border-color:var(--red)}.node.orange{border-color:var(--orange)}.node.green{border-color:var(--leaf)}
 .node.sel{box-shadow:0 0 0 3px rgba(56,103,132,.35)}
 .node.company,.node.area{background:var(--brand);color:#fff;border-color:var(--brand)}
 .node.area.red{border-color:var(--red);box-shadow:0 0 0 2px var(--red)}
-.node .t{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;line-height:1.15}.node .lv{display:block;font-size:8.5px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;opacity:.65}.node.step{border-left-width:6px}#mapwrap{cursor:grab}.node{cursor:move}.node.dt{outline:3px dashed var(--leaf);outline-offset:2px}#mapwrap.pan{cursor:grabbing;user-select:none}
+.node .t{flex:1;min-width:0;white-space:normal;overflow-wrap:break-word;hyphens:auto;line-height:1.2}.node::before{content:"";position:absolute;left:10px;right:10px;top:-2.5px;height:4px;border-radius:3px;background:var(--lc,#95C11F)}.node.company{--lc:#25384a}.node.area{--lc:#386784}.node.main{--lc:#82B0A9}.node.sub{--lc:#95C11F}.node.step{--lc:#E3B505}
+.lg{display:inline-flex;gap:4px;align-items:center;font-size:12px;color:#4a5b68;margin:0 6px}.lg i{display:inline-block;width:10px;height:10px;border-radius:50%;margin-left:8px}
+.node .ask{display:block;color:var(--red);font-weight:800;font-size:11px;margin-top:2px;opacity:1;text-transform:none;letter-spacing:0}.askbox textarea{color:var(--red);font-weight:700;border-color:#f0b9b7;background:#fff7f6;min-height:60px}.node .lv{display:block;line-height:1.1;font-size:8.5px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;opacity:.65}.node.step{border-left-width:6px}#mapwrap{cursor:grab}.node{cursor:move}.node.dt{outline:3px dashed var(--leaf);outline-offset:2px}#mapwrap.pan{cursor:grabbing;user-select:none}
 .node .c{font-size:10.5px;font-weight:700;color:#6b7c88;white-space:nowrap}
 .node.company .c,.node.area .c{color:#d6e5ee}
 .node .tg{width:18px;height:18px;border-radius:50%;background:var(--light);color:var(--brand);text-align:center;line-height:18px;font-size:11px;flex:none}
@@ -290,50 +292,69 @@ function renderView(){
 function renderPage(){renderView();const v=$("#view");if(TITLES[tab])v.insertAdjacentHTML("afterbegin",`<h1 class="pt">${TITLES[tab]}</h1>`)}
 const dotc = s => `<span class="dot ${s}"></span>`;
 
-const COLW=262,ROWH=46;
+let mapMode="t",mapZoom=0.9;try{mapMode=localStorage.getItem("cockpit-mapmode2")||"t"}catch(e){}
+const MODES={t:"Organigramm",v:"Liste",h:"waagerecht"};
 const LVN={company:"Unternehmen",area:"Bereich",main:"Hauptprozess",sub:"Teilprozess",step:"Schritt"};
 function renderMap(v){
   const old=$("#mapwrap");const scroll=old?[old.scrollLeft,old.scrollTop]:[0,0];
   v.innerHTML=`<div class="bar">
+    <button class="btn ghost" data-act="mapmode">Ansicht: ${MODES[mapMode]}</button>
+    <button class="btn ghost sm" data-act="zout" title="Verkleinern">−</button><button class="btn ghost sm" data-act="zin" title="Vergrößern">+</button><button class="btn ghost sm" data-act="zfit">Einpassen</button>
     <button class="btn ghost" data-act="expand">Alles aufklappen</button>
     <button class="btn ghost" data-act="collapse">Alles zuklappen</button>
     <button class="btn ${onlyGaps?"red":"ghost"}" data-act="gaps">Nur Lücken anzeigen</button>
     <input id="q" placeholder="Suchen …" value="${esc(search)}" style="max-width:240px">
-    <span class="muted">Kachel ziehen = Reihenfolge ändern / neu zuordnen · Hintergrund ziehen = verschieben · Klick = öffnen · Doppelklick = auf-/zuklappen · Rahmen: <span class="dot red"></span> Lücke <span class="dot orange"></span> ausgefüllt, nicht bestätigt <span class="dot green"></span> vollständig</span>
+    <span class="lg"><i style="background:#25384a"></i>Unternehmen <i style="background:#386784"></i>Bereich <i style="background:#82B0A9"></i>Hauptprozess <i style="background:#95C11F"></i>Teilprozess <i style="background:#E3B505"></i>Schritt</span>
+    <span class="muted">Kachel ziehen = verschieben (auch auf andere Ebene) · Hintergrund ziehen = verschieben · Klick = öffnen · Doppelklick = auf-/zuklappen · Rahmen: <span class="dot red"></span> Lücke <span class="dot orange"></span> ausgefüllt, nicht bestätigt <span class="dot green"></span> vollständig</span>
   </div><div id="mapwrap"><div id="map"></div></div>`;
-  const pos={};let y=0,maxd=0;
   const q=search.trim().toLowerCase();
   const match=id=>{const n=nodes[id];if(n.name.toLowerCase().includes(q))return true;return kids(id).some(k=>match(k.id))};
+  const V=mapMode==="v",T=mapMode==="t";
+  let ctx=null;try{ctx=document.createElement("canvas").getContext("2d")}catch(e){}
+  const nlines=(txt,w,font)=>{if(ctx)ctx.font=font;const mw=t=>ctx?ctx.measureText(t).width:t.length*6.8;let c=0;String(txt).split("\n").forEach(para=>{let cur="",k=1;para.split(/\s+/).forEach(word=>{const t=cur?cur+" "+word:word;if(mw(t)>w&&cur){k++;cur=word}else cur=t});c+=k});return c};
+  const pos={};const order=[];let cur=12;
+  const inner=id=>{const n=nodes[id],g=GAPS[id],hasK=kids(id).length>0;const cnt=hasK&&g.total?`${g.done}/${g.total}`:"";
+    return `${COUNTS(n)&&ownState(n)==="red"?'<span class="rd"></span>':""}<span class="t"><small class="lv">${LVN[n.level]||""}</small>${esc(n.name)}${n.ask?`<small class="ask">❓ ${esc(n.ask)}</small>`:""}</span><span class="c">${cnt}</span>${hasK?`<span class="tg" data-tg="${id}">${(q||!collapsed.has(id))?"–":"+"}</span>`:""}`};
+  const ms=document.createElement("div");ms.style.cssText="position:absolute;left:-9999px;top:0;visibility:hidden";document.body.appendChild(ms);
+  const dims=(id,d)=>{const w=T?240:(V?640-d*34:280);const e=document.createElement("div");e.className="node "+nodes[id].level;e.style.cssText="position:relative;left:0;top:0;width:"+w+"px;height:auto";e.innerHTML=inner(id);ms.appendChild(e);
+    return {w,h:Math.max(42,Math.ceil(e.getBoundingClientRect().height))+2}};
   const walk=(id,d)=>{
-    maxd=Math.max(maxd,d);
     let ks=kids(id);
     if(onlyGaps) ks=ks.filter(k=>GAPS[k.id].state!=="green");
     if(q) ks=ks.filter(k=>match(k.id));
     const open=ks.length&&(q||!collapsed.has(id));
-    if(!open){pos[id]={d,y:y++};return}
-    const ys=[];ks.forEach(k=>{walk(k.id,d+1);ys.push(pos[k.id].y)});
-    pos[id]={d,y:(ys[0]+ys[ys.length-1])/2};
+    const m=dims(id,d);const x=V?d*34+12:d*316+12;
+    if(V){pos[id]={x,y:cur,...m};cur+=m.h+8;if(open)ks.forEach(k=>walk(k.id,d+1));return}
+    if(!open){pos[id]={x,y:cur,...m};cur+=m.h+10;return}
+    const start=cur;ks.forEach(k=>walk(k.id,d+1));
+    const f=pos[ks[0].id],l=pos[ks[ks.length-1].id];
+    const y=Math.max(start,(f.y+f.h/2+l.y+l.h/2)/2-m.h/2);pos[id]={x,y,...m};cur=Math.max(cur,y+m.h+10);
   };
   const root=Object.values(nodes).find(n=>!n.parent); if(!root){$("#map").textContent="Keine Daten.";return}
-  walk(root.id,0);
-  const W=(maxd+1)*COLW+40,H=Math.max(y,1)*ROWH+30;
+  if(T){
+    const vis=id=>{let ks=kids(id);if(onlyGaps)ks=ks.filter(k=>GAPS[k.id].state!=="green");if(q)ks=ks.filter(k=>match(k.id));return ks.length&&(q||!collapsed.has(id))?ks:[]};
+    const info={},maxH=[];
+    const sw=(id,d)=>{const ks=vis(id),m=dims(id,d),subs=ks.map(k=>sw(k.id,d+1));const sum=subs.reduce((a,b)=>a+b,0);const tot=Math.max(m.w+18,sum);info[id]={d,m,ks,tot,sum};maxH[d]=Math.max(maxH[d]||0,m.h);return tot};
+    sw(root.id,0);const ys=[],GAPY=48;let acc=16;maxH.forEach((h,d)=>{ys[d]=acc;acc+=h+GAPY});
+    const place=(id,x0)=>{const i=info[id];let c=x0+(i.tot-i.sum)/2;i.ks.forEach(k=>{place(k.id,c);c+=info[k.id].tot});
+      pos[id]={x:x0+i.tot/2-i.m.w/2,y:ys[i.d],w:i.m.w,h:i.m.h,ym:ys[i.d]+maxH[i.d]+GAPY/2}};
+    place(root.id,12);
+  } else walk(root.id,0);
+  let W=0,H=0;for(const id in pos){const p=pos[id];W=Math.max(W,p.x+p.w);H=Math.max(H,p.y+p.h)}W+=40;H+=30;
   let svg="",html="";
   for(const id in pos){
     const n=nodes[id],p=pos[id];
-    const x=p.d*COLW+12,yy=p.y*ROWH+12;
-    for(const k of kids(id)){ if(pos[k.id]&&pos[k.id].d===p.d+1){
-      const x1=x+226,y1=yy+18,x2=pos[k.id].d*COLW+12,y2=pos[k.id].y*ROWH+12+18;
-      svg+=`<path d="M${x1} ${y1} C ${x1+26} ${y1}, ${x2-26} ${y2}, ${x2} ${y2}" fill="none" stroke="#b9cbc7" stroke-width="1.5"/>`;
+    for(const k of kids(id)){ const c=pos[k.id]; if(c&&(T||c.x>p.x)){
+      if(T){svg+=`<path d="M${p.x+p.w/2} ${p.y+p.h} V${p.ym} H${c.x+c.w/2} V${c.y}" fill="none" stroke="#95C11F" stroke-width="1.6"/>`}
+      else if(V){svg+=`<path d="M${p.x+16} ${p.y+p.h} V${c.y+c.h/2} H${c.x}" fill="none" stroke="#b9cbc7" stroke-width="1.5"/>`}
+      else{const x1=p.x+p.w,y1=p.y+p.h/2,x2=c.x,y2=c.y+c.h/2;
+      svg+=`<path d="M${x1} ${y1} C ${x1+26} ${y1}, ${x2-26} ${y2}, ${x2} ${y2}" fill="none" stroke="#b9cbc7" stroke-width="1.5"/>`}
     }}
-    const g=GAPS[id];const hasK=kids(id).length>0;
-    const cnt=hasK&&g.total?`${g.done}/${g.total}`:"";
-    const st=(n.level==="company"?"":g.state);
-    html+=`<div class="node ${n.level} ${st} ${sel===id?"sel":""}" data-id="${id}" style="left:${x}px;top:${yy}px" title="${esc(n.name)}">
-      ${COUNTS(n)&&ownState(n)==="red"?'<span class="rd"></span>':""}
-      <span class="t"><small class="lv">${LVN[n.level]||""}</small>${esc(n.name)}</span><span class="c">${cnt}</span>
-      ${hasK?`<span class="tg" data-tg="${id}">${(q||!collapsed.has(id))?"–":"+"}</span>`:""}</div>`;
+    const g=GAPS[id];const st=(n.level==="company"?"":g.state);
+    html+=`<div class="node ${n.level} ${st} ${sel===id?"sel":""}" data-id="${id}" style="left:${p.x}px;top:${p.y}px;width:${p.w}px;height:${p.h}px" title="${esc(n.name)}">${inner(id)}</div>`;
   }
-  $("#map").style.cssText=`width:${W}px;height:${H}px`;
+  ms.remove();
+  $("#map").style.cssText=`width:${W}px;height:${H}px;zoom:${mapZoom}`;
   $("#map").innerHTML=`<svg width="${W}" height="${H}">${svg}</svg>`+html;
   $("#mapwrap").scrollLeft=scroll[0];$("#mapwrap").scrollTop=scroll[1];
 }
@@ -498,6 +519,7 @@ function renderPanel(){
   const ks=kids(n.id);
   p.innerHTML=`<div class="row"><div class="crumb">${esc(path(n.id).map(x=>x.name).join(" › "))}</div><button class="btn ghost sm" data-act="close">Schließen</button></div>
   <div class="row"><input data-name value="${esc(n.name)}" style="font-weight:800;font-size:16px"></div>
+  <div class="q askbox"><label style="color:var(--red);font-weight:800">Fragen / Notizen fürs nächste Gespräch <span class="req-tag">erscheint rot an der Kachel</span></label><textarea data-ask placeholder="z. B. Wer gibt die Fensterfreigabe frei?">${esc(n.ask||"")}</textarea></div>
   <div class="row"><span class="sm">${LV[n.level]} ${st?dotc(st):""}</span>
   ${COUNTS(n)?`<select data-status>${STATUS.map(s=>`<option value="${s[0]}" ${n.status===s[0]?"selected":""}>${s[1]}</option>`).join("")}</select>`:""}</div>
   ${COUNTS(n)&&nSug?`<div class="sug"><b>${nSug} Vorschläge aus den Excel-Listen und dem Prozessfoto</b> warten auf deine Prüfung.<br><button class="btn leaf" data-act="acceptall">Alle Vorschläge dieser Kachel übernehmen</button></div>`:""}
@@ -525,7 +547,7 @@ function renderPanel(){
   <div class="row"><select id="mvLv">${["area","main","sub","step"].map(l=>`<option value="${l}" ${n.level===l?"selected":""}>${LV[l]}</option>`).join("")}</select>
   <select id="mvPar">${mvOpts(n.level,n.id)}</select><button class="btn sm" data-act="movenode">Verschieben</button></div>`:""}
   <h3>Aktionen</h3>
-  <div class="row">${CHILD[n.level]?`<button class="btn leaf" data-act="addchild">+ ${LV[CHILD[n.level]]} darunter</button>`:""}${n.parent?`<button class="btn red sm" data-act="delnode">Löschen</button>`:""}</div>
+  <div class="row">${CHILD[n.level]?`<button class="btn leaf" data-act="addchild">+ ${LV[CHILD[n.level]]} darunter</button>`:""}${n.parent?`<button class="btn leaf" data-act="addsib">+ ${LV[n.level]} daneben</button>`:""}${n.parent?`<button class="btn red sm" data-act="delnode">Löschen</button>`:""}</div>
   ${n.source?`<p class="muted">Quelle: ${esc(n.source)}</p>`:""}`;
   p.classList.add("open");
 }
@@ -534,6 +556,11 @@ const LORD=["company","area","main","sub","step"];
 function descIds(id){const r=[];const w=i=>kids(i).forEach(k=>{r.push(k.id);w(k.id)});w(id);return r}
 function mvOpts(lv,id){const pl=LORD[LORD.indexOf(lv)-1];const bad=new Set([id,...descIds(id)]);const cur=nodes[id].parent;
   return Object.values(nodes).filter(x=>x.level===pl&&!bad.has(x.id)).sort((a,b)=>pathStr(a.id).localeCompare(pathStr(b.id))).map(x=>`<option value="${x.id}" ${x.id===cur?"selected":""}>${esc(x.parent?pathStr(x.id):x.name)}</option>`).join("")}
+function moveTo(d,pid,idx,lv){const delta=LORD.indexOf(lv)-LORD.indexOf(d.level),ds=descIds(d.id);
+  if(LORD.indexOf(lv)<1||ds.some(i=>{const k=LORD.indexOf(nodes[i].level)+delta;return k>4||k<2}))return false;
+  d.level=lv;d.parent=pid;ds.forEach(i=>{nodes[i].level=LORD[LORD.indexOf(nodes[i].level)+delta]});
+  const list=kids(pid).filter(x=>x.id!==d.id);if(idx==null||idx>list.length)idx=list.length;list.splice(idx,0,d);list.forEach((x,k)=>{x.ord=k});
+  [...list,...ds.map(i=>nodes[i])].forEach(x=>save(x));return true}
 function select(id,focus){
   sel=id;
   if(focus){let c=nodes[id];while(c&&c.parent){c=nodes[c.parent];collapsed.delete(c.id)}tab="map";search="";onlyGaps=false}
@@ -624,7 +651,13 @@ document.addEventListener("click",async e=>{
   else if(act==="jsonin")$("#fileJson").click();
   else if(act==="seed")loadSeed();
   else if(act==="wipe"){if(confirm("Wirklich ALLE Kacheln löschen?")&&confirm("Letzte Warnung: das kann nicht rückgängig gemacht werden.")){await removeIds([...Object.keys(nodes),...Object.keys(extra)]);extra={};sel=null;refresh()}}
-  else if(act==="addchild"){const c=CHILD[n.level];const nn=norm({id:uid(),parent:n.id,level:c,name:"Neue Kachel",ord:kids(n.id).length,q:{}});nodes[nn.id]=nn;collapsed.delete(n.id);save(nn);sel=nn.id;refresh()}
+  else if(act==="addchild"||act==="addsib"){const sib=act==="addsib";const par=sib?n.parent:n.id,lv=sib?n.level:CHILD[n.level];
+    const nn=norm({id:uid(),parent:par,level:lv,name:"Neue Kachel",ord:sib?n.ord+0.5:kids(par).length,q:{}});nodes[nn.id]=nn;
+    kids(par).forEach((x,k)=>{x.ord=k;save(x)});let c=nodes[par];while(c){collapsed.delete(c.id);c=nodes[c.parent]}
+    save(nn);sel=nn.id;refresh();setTimeout(()=>{const i=document.querySelector("#panel [data-name]");if(i){i.focus();i.select()}},60)}
+  else if(act==="mapmode"){mapMode={t:"v",v:"h",h:"t"}[mapMode];try{localStorage.setItem("cockpit-mapmode2",mapMode)}catch(e){}renderPage()}
+  else if(act==="zin"||act==="zout"||act==="zfit"){const m=$("#map"),w=$("#mapwrap");if(act==="zfit")mapZoom=Math.max(.25,Math.min(1.2,(w.clientWidth-24)/(parseFloat(m.style.width)||1)));else mapZoom=Math.max(.3,Math.min(1.6,mapZoom+(act==="zin"?.15:-.15)));m.style.zoom=mapZoom}
+  else if(act==="delnode"){if(!confirm("„"+n.name+"“ mit allen Unterkacheln löschen?"))return;const ids=[];const w=id=>{ids.push(id);kids(id).forEach(k=>w(k.id))};w(n.id);sel=null;await removeIds(ids);refresh()}
   else if(act==="movenode"){const lv=$("#mvLv").value,pid=$("#mvPar").value;if(!pid){toast("Bitte eine Kachel wählen, unter die sie gehört.");return}
     const delta=LORD.indexOf(lv)-LORD.indexOf(n.level),ds=descIds(n.id);
     if(ds.some(i=>LORD.indexOf(nodes[i].level)+delta>4||LORD.indexOf(nodes[i].level)+delta<2)){toast("Geht nicht: Die Unterkacheln hätten dann keine passende Ebene mehr.");return}
@@ -648,6 +681,7 @@ document.addEventListener("input",e=>{
   if(!n||!$("#panel").contains(t))return;
   if(t.dataset.q){n.q[t.dataset.q]=t.value;save(n);later()}
   else if("src" in t.dataset){n.src=t.value;save(n)}
+  else if("ask" in t.dataset){n.ask=t.value;save(n);later()}
   else if("soll" in t.dataset){n.soll=t.value;save(n)}
   else if("name" in t.dataset){n.name=t.value;save(n);later()}
   else if(t.dataset.fr!==undefined){n.fristen[+t.dataset.fr][t.dataset.f]=t.value;save(n)}
@@ -698,14 +732,15 @@ document.addEventListener("mouseup",e=>{
     if(moved){const t0=document.elementFromPoint(e.clientX,e.clientY);const tn=t0&&t0.closest(".node");
       if(tn&&tn.dataset.id!==d.id){const t=nodes[tn.dataset.id];
         if(descIds(d.id).includes(t.id)){toast("Geht nicht: Die Kachel kann nicht in ihre eigene Unterkachel.")}
-        else if(t.level===d.level){const r=tn.getBoundingClientRect();const after=e.clientY>r.top+r.height/2;
-          const list=kids(t.parent).filter(x=>x.id!==d.id);let i=list.findIndex(x=>x.id===t.id);if(after)i++;
-          d.parent=t.parent;list.splice(i,0,d);list.forEach((x,k)=>{x.ord=k;save(x)});refresh();toast("Reihenfolge geändert.")}
-        else if(LORD.indexOf(t.level)===LORD.indexOf(d.level)-1){d.parent=t.id;d.ord=kids(t.id).filter(x=>x.id!==d.id).length;save(d);collapsed.delete(t.id);refresh();toast("Verschoben unter „"+t.name+"“.")}
-        else toast("Geht hier nicht: Auf eine gleiche Ebene (Reihenfolge) oder auf die Kachel darüber (neu zuordnen) ziehen.")}}
+        else{let ok;
+          if(LORD.indexOf(t.level)<LORD.indexOf(d.level)){ok=moveTo(d,t.id,null,LORD[LORD.indexOf(t.level)+1]);if(ok){collapsed.delete(t.id);toast("Verschoben unter „"+t.name+"“ (jetzt: "+LV[d.level]+").")}}
+          else{const r=tn.getBoundingClientRect();const after=e.clientY>r.top+r.height/2;const list=kids(t.parent).filter(x=>x.id!==d.id);let i=list.findIndex(x=>x.id===t.id);if(after)i++;
+            ok=moveTo(d,t.parent,i,t.level);if(ok)toast("Verschoben (jetzt: "+LV[d.level]+").")}
+          if(ok)refresh();else toast("Geht nicht: Die Unterkacheln hätten dann keine passende Ebene mehr.")}}}
     dn=null}});
 document.addEventListener("click",e=>{if(moved){e.stopPropagation();e.preventDefault();moved=false}},true);
 })();
+try{document.fonts&&document.fonts.ready.then(()=>{if(typeof tab!=="undefined"&&tab==="map")renderPage()})}catch(e){}
 </script>
 </body>
 </html>
