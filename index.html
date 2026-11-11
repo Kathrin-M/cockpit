@@ -640,7 +640,7 @@ document.addEventListener("click",async e=>{
   else if(act==="ideaadd"){const t=$("#ideaIn").value.trim();if(t){saveExtra({id:"x-idea-"+uid(),kind:"idea",text:t,where:$("#ideaWhere").value.trim()});renderPage()}}
   else if(act==="ideadel"){await removeExtra(b.dataset.id);renderPage()}
   else if(act==="autocsv"){const r=Object.values(nodes).filter(x=>COUNTS(x)&&x.auto&&x.auto!=="nein").map(x=>[x.id,x.auto,pathStr(x.id),x.q.q1||"",x.q.q7||x.q.q4||"",x.q.q9||"",x.deps.map(d=>d.ref||d.text).join(" | "),x.fristen.map(f=>f.art+": "+f.name+" "+f.dauer).join(" | "),x.soll||""]);downloadFile("automationsliste.csv",toCsv(["ID","Tool","Pfad","Auslöser","Wer","Abhängigkeiten/Fristen (Text)","Wartet auf","Fristen","Soll-Änderung"],r),"text/csv")}
-  else if(act==="expand"){collapseDefault();renderPage()}
+  else if(act==="expand"){collapsed.clear();collapseDefault();renderPage()}
   else if(act==="collapse"){collapseDefault();const r=Object.values(nodes).find(n=>!n.parent);if(r)collapsed.add(r.id);renderPage()}
   else if(act==="gaps"){onlyGaps=!onlyGaps;renderPage()}
   else if(act==="close"){sel=null;$("#panel").classList.remove("open");renderPage()}
