@@ -60,7 +60,7 @@ tr.link{cursor:pointer}tr.link:hover{background:var(--light)}
 .node.area.red{border-color:var(--red);box-shadow:0 0 0 2px var(--red)}
 .node .t{flex:1;min-width:0;white-space:normal;overflow-wrap:break-word;hyphens:auto;line-height:1.2}.node::before{content:"";position:absolute;left:10px;right:10px;top:-2.5px;height:4px;border-radius:3px;background:var(--lc,#95C11F)}.node.company{--lc:#25384a}.node.area{--lc:#386784}.node.main{--lc:#82B0A9}.node.sub{--lc:#95C11F}.node.step{--lc:#E3B505}
 .lg{display:inline-flex;gap:4px;align-items:center;font-size:12px;color:#4a5b68;margin:0 6px}.lg i{display:inline-block;width:10px;height:10px;border-radius:50%;margin-left:8px}
-.node .ask{display:block;color:var(--red);font-weight:800;font-size:11px;margin-top:2px;opacity:1;text-transform:none;letter-spacing:0}.askbox textarea{color:var(--red);font-weight:700;border-color:#f0b9b7;background:#fff7f6;min-height:60px}.node .lv{display:block;line-height:1.1;font-size:8.5px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;opacity:.65}.node.step{border-left-width:6px}#mapwrap{cursor:grab}.node{cursor:move}.node.dt{outline:3px dashed var(--leaf);outline-offset:2px}#mapwrap.pan{cursor:grabbing;user-select:none}
+.node .ask{display:block;color:var(--red);font-weight:800;font-size:11px;margin-top:2px;opacity:1;text-transform:none;letter-spacing:0}textarea{resize:none;overflow:hidden}.askbox textarea{color:var(--red);font-weight:700;border-color:#f0b9b7;background:#fff7f6;min-height:60px}.node .lv{display:block;line-height:1.1;font-size:8.5px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;opacity:.65}.node.step{border-left-width:6px}#mapwrap{cursor:grab}.node{cursor:move}.node.dt{outline:3px dashed var(--leaf);outline-offset:2px}#mapwrap.pan{cursor:grabbing;user-select:none}
 .node .c{font-size:10.5px;font-weight:700;color:#6b7c88;white-space:nowrap}
 .node.company .c,.node.area .c{color:#d6e5ee}
 .node .tg{width:18px;height:18px;border-radius:50%;background:var(--light);color:var(--brand);text-align:center;line-height:18px;font-size:11px;flex:none}
@@ -314,7 +314,7 @@ function renderMap(v){
   const nlines=(txt,w,font)=>{if(ctx)ctx.font=font;const mw=t=>ctx?ctx.measureText(t).width:t.length*6.8;let c=0;String(txt).split("\n").forEach(para=>{let cur="",k=1;para.split(/\s+/).forEach(word=>{const t=cur?cur+" "+word:word;if(mw(t)>w&&cur){k++;cur=word}else cur=t});c+=k});return c};
   const pos={};const order=[];let cur=12;
   const inner=id=>{const n=nodes[id],g=GAPS[id],hasK=kids(id).length>0;const cnt=hasK&&g.total?`${g.done}/${g.total}`:"";
-    return `${COUNTS(n)&&ownState(n)==="red"?'<span class="rd"></span>':""}<span class="t"><small class="lv">${LVN[n.level]||""}</small>${esc(n.name)}${n.ask?`<small class="ask">❓ ${esc(n.ask)}</small>`:""}</span><span class="c">${cnt}</span>${hasK?`<span class="tg" data-tg="${id}">${(q||!collapsed.has(id))?"–":"+"}</span>`:""}`};
+    return `${COUNTS(n)&&ownState(n)==="red"?'<span class="rd"></span>':""}<span class="t"><small class="lv">${LVN[n.level]||""}</small>${esc(n.name)}</span><span class="c">${cnt}</span>${hasK?`<span class="tg" data-tg="${id}">${(q||!collapsed.has(id))?"–":"+"}</span>`:""}`};
   const ms=document.createElement("div");ms.style.cssText="position:absolute;left:-9999px;top:0;visibility:hidden";document.body.appendChild(ms);
   const dims=(id,d)=>{const w=T?240:(V?640-d*34:280);const e=document.createElement("div");e.className="node "+nodes[id].level;e.style.cssText="position:relative;left:0;top:0;width:"+w+"px;height:auto";e.innerHTML=inner(id);ms.appendChild(e);
     return {w,h:Math.max(42,Math.ceil(e.getBoundingClientRect().height))+2}};
@@ -745,6 +745,13 @@ try{document.fonts&&document.fonts.ready.then(()=>{if(typeof tab!=="undefined"&&
 const closePanel=()=>{if(!sel&&!$("#panel").classList.contains("open"))return;sel=null;$("#panel").classList.remove("open");if(typeof renderPage==="function")renderPage()};
 document.addEventListener("mousedown",e=>{const p=$("#panel");if(!p||!p.classList.contains("open"))return;const t=e.target;if(p.contains(t)||t.closest(".node")||t.closest("#toast")||t.closest("dialog"))return;closePanel()},true);
 document.addEventListener("keydown",e=>{if(e.key==="Escape"){const a=document.activeElement;if(a&&a.blur&&$("#panel").contains(a))a.blur();closePanel()}});
+
+(()=>{const grow=t=>{t.style.height="auto";t.style.height=(t.scrollHeight+2)+"px"};let q=0;
+const all=()=>{q=0;document.querySelectorAll("textarea").forEach(grow)};
+const sched=()=>{if(!q)q=requestAnimationFrame(all)};
+new MutationObserver(sched).observe(document.body,{childList:true,subtree:true});
+document.addEventListener("input",e=>{if(e.target&&e.target.tagName==="TEXTAREA")grow(e.target)});
+window.addEventListener("resize",sched);if(document.fonts&&document.fonts.ready)document.fonts.ready.then(sched);sched();})();
 </script>
 </body>
 </html>
