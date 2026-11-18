@@ -69,6 +69,7 @@ tr.link{cursor:pointer}tr.link:hover{background:var(--light)}
 #panel.open{transform:none}
 #panel h3,h3{margin:14px 0 6px;color:var(--brand);font-size:13px;text-transform:uppercase;letter-spacing:.06em}
 .q{margin-bottom:10px}.q label{display:block;font-weight:700;font-size:12.5px;margin-bottom:3px}
+.q.na label{color:#2e7d32}.q.na textarea{border-color:#9bc99d;background:#f1f8f1}
 .q.req.empty label{color:var(--red)}.q.req.empty textarea{border-color:var(--red);background:#fff6f5}
 .req-tag{font-size:10px;color:#6b7c88;font-weight:400}
 .row{display:flex;gap:6px;margin-bottom:6px;align-items:center}
@@ -157,6 +158,7 @@ function norm(n){n.q=n.q||{};n.checklist=n.checklist||[];n.deps=n.deps||[];n.fri
 function path(id){const o=[];let c=nodes[id];while(c){o.unshift(c);c=c.parent?nodes[c.parent]:null}return o}
 function pathStr(id){return path(id).filter(n=>n.parent).map(n=>n.name).join(" › ")}
 function areaOf(id){const p=path(id);return p[1]?p[1].name:""}
+function isNA(s){return /^\s*[-–—]+\s*$/.test(s||"")}
 function filled(n,k){
   if(k==="q9"&&((n.deps||[]).length||(n.fristen||[]).length)) return true;
   return !!(n.q[k]||"").trim();
@@ -166,14 +168,14 @@ function ownState(n){ if(missing(n).length) return "red"; return n.status==="con
 function computeGaps(){
   const out={};
   const visit=id=>{
-    const n=nodes[id];let done=0,total=0;const st=[];
+    const n=nodes[id];let done=0,total=0,fill=0;const st=[];
     if(COUNTS(n)) st.push(ownState(n));
     for(const k of kids(id)){
-      const g=visit(k.id);done+=g.done+(COUNTS(k)&&ownState(k)==="green"?1:0);total+=g.total+(COUNTS(k)?1:0);st.push(g.state);
+      const g=visit(k.id);done+=g.done+(COUNTS(k)&&ownState(k)==="green"?1:0);total+=g.total+(COUNTS(k)?1:0);fill+=g.fill+(COUNTS(k)&&ownState(k)!=="red"?1:0);st.push(g.state);
     }
     if(n.level==="area"&&!kids(id).length) st.push("red");
     const state=st.includes("red")?"red":st.includes("orange")?"orange":"green";
-    return out[id]={state,done,total};
+    return out[id]={state,done,total,fill};
   };
   const r=Object.values(nodes).find(n=>!n.parent); if(r) visit(r.id);
   return out;
@@ -364,15 +366,15 @@ function renderIst(v){
   const rows=[];
   for(const a of kids(root.id)){
     const ms=kids(a.id);
-    if(!ms.length){rows.push(`<tr><td><b>${esc(a.name)}</b></td><td colspan="5" class="muted">Noch nicht aufgenommen</td><td>${dotc("red")}</td></tr>`);continue}
+    if(!ms.length){rows.push(`<tr><td><b>${esc(a.name)}</b></td><td colspan="6" class="muted">Noch nicht aufgenommen</td><td>${dotc("red")}</td></tr>`);continue}
     ms.forEach((m,i)=>{
-      const gi=GAPS[m.id],tot=gi.total+1,done=gi.done+(ownState(m)==="green"?1:0),pc=Math.round(done/tot*100);
-      rows.push(`<tr class="link" data-focus="${m.id}"><td>${i?"":"<b>"+esc(a.name)+"</b>"}</td><td>${esc(m.name)}</td><td>${tot}</td><td>${done}</td><td>${tot-done}</td><td><div class="pbar"><div style="width:${pc}%"></div></div>${pc} %</td><td>${dotc(gi.state==="red"||ownState(m)==="red"?"red":gi.state)}</td></tr>`);
+      const gi=GAPS[m.id],tot=gi.total+1,done=gi.done+(ownState(m)==="green"?1:0),pc=Math.round(done/tot*100),fl=gi.fill+(ownState(m)!=="red"?1:0),pf=Math.round(fl/tot*100);
+      rows.push(`<tr class="link" data-focus="${m.id}"><td>${i?"":"<b>"+esc(a.name)+"</b>"}</td><td>${esc(m.name)}</td><td>${tot}</td><td>${fl}</td><td>${done}</td><td>${tot-fl}</td><td><div class="pbar"><div style="width:${pf}%"></div></div>${pf} % ausgefüllt, ${pc} % bestätigt</td><td>${dotc(gi.state==="red"||ownState(m)==="red"?"red":gi.state)}</td></tr>`);
     });
   }
   v.innerHTML=`<div class="status ${g.state==="green"?"green":"red"}">${g.state==="green"?"Ist-Stand validiert":"Ist-Stand noch nicht validiert: "+(g.total-g.done)+" von "+g.total+" Kacheln offen"}</div>
-  <p class="muted">Eine Kachel ist vollständig, wenn alle Pflichtfragen ausgefüllt sind und der Status „Bestätigt“ ist. Bereiche ohne Hauptprozesse gelten als nicht aufgenommen.</p>
-  <table><tr><th>Bereich</th><th>Hauptprozess</th><th>Kacheln</th><th>vollständig</th><th>mit Lücke</th><th>Fortschritt</th><th>Ampel</th></tr>${rows.join("")}</table>`;
+  <p class="muted">Eine Kachel gilt als ausgefüllt, wenn alle Pflichtfragen beantwortet sind, und als bestätigt, wenn zusätzlich der Status „Bestätigt“ gesetzt ist. Bereiche ohne Hauptprozesse gelten als nicht aufgenommen.</p>
+  <table><tr><th>Bereich</th><th>Hauptprozess</th><th>Kacheln</th><th>ausgefüllt</th><th>bestätigt</th><th>mit Lücke</th><th>Fortschritt</th><th>Ampel</th></tr>${rows.join("")}</table>`;
 }
 function gapRows(){
   const out=[];
@@ -394,7 +396,7 @@ function renderGaps(v){
 }
 function renderEng(v){
   const rated=Object.values(nodes).filter(n=>n.h&&n.a).sort((a,b)=>b.h*b.a-a.h*a.a);
-  const open=Object.values(nodes).filter(n=>!(n.h&&n.a)&&(n.q.q6||"").trim()&&!/^kein/i.test(n.q.q6.trim()));
+  const open=Object.values(nodes).filter(n=>!(n.h&&n.a)&&(n.q.q6||"").trim()&&!/^kein/i.test(n.q.q6.trim())&&!isNA(n.q.q6));
   const col=s=>s>=6?"#D9534F":s>=3?"#F4B183":"#FFE699";
   v.innerHTML=`<p class="muted">Bewertung in der Detailansicht der Kachel: Häufigkeit × Auswirkung (1–3). Score 6–9 rot.</p>
   <h3>Bewertet (nach Score)</h3><table><tr><th>Score</th><th>Pfad</th><th>Wo hakt es</th><th>H</th><th>A</th></tr>${rated.map(n=>`<tr class="link" data-focus="${n.id}"><td style="background:${col(n.h*n.a)};font-weight:800">${n.h*n.a}</td><td>${esc(pathStr(n.id))}</td><td>${esc(n.q.q6||"")}</td><td>${n.h}</td><td>${n.a}</td></tr>`).join("")||'<tr><td colspan="5" class="muted">Noch nichts bewertet.</td></tr>'}</table>
@@ -513,7 +515,7 @@ function renderPanel(){
   const st=n.level==="company"?"":ownState(n);
   const req=REQ[n.level]||[],opt=OPT[n.level]||[];
   const openSug=k=>n.sug&&n.sug[k]&&!(n.q[k]||"").trim();
-  const ta=(k,isReq)=>{const e=isReq&&!filled(n,k);return `<div class="q ${isReq?"req":""} ${e?"empty":""}"><label>${QS[k][0]} <span class="req-tag">${QS[k][1]}</span></label>${openSug(k)?`<div class="sug"><b>Vorschlag aus den Listen:</b> ${esc(n.sug[k])}<br><button class="btn leaf" data-act="acceptsug" data-k="${k}">Übernehmen</button> <span class="muted">${esc(n.sugsrc||"")}</span></div>`:""}<textarea data-q="${k}">${esc(n.q[k]||"")}</textarea></div>`};
+  const ta=(k,isReq)=>{const e=isReq&&!filled(n,k);const na=isNA(n.q[k]);return `<div class="q ${isReq?"req":""} ${e?"empty":""} ${na?"na":""}"><label>${QS[k][0]} <span class="req-tag">${na?"nicht zutreffend, erledigt":QS[k][1]}</span></label>${openSug(k)?`<div class="sug"><b>Vorschlag aus den Listen:</b> ${esc(n.sug[k])}<br><button class="btn leaf" data-act="acceptsug" data-k="${k}">Übernehmen</button> <span class="muted">${esc(n.sugsrc||"")}</span></div>`:""}<textarea data-q="${k}">${esc(n.q[k]||"")}</textarea></div>`};
   const nSug=[...req,...opt].filter(openSug).length;
   const QCL=["Auslöser und Ergebnis sind klar benannt","Alle Schritte stehen in Reihenfolge, mit Verantwortlichem und Freigabe","Unterlagen und Ablageort sind angegeben","Fristen, Wartezeiten und Abhängigkeiten sind erfasst","Ausnahmen und Fehlerfälle sind benannt","Mindestens eine Person, die es wirklich macht, wurde befragt","Eine neue Person könnte den Ablauf nachvollziehen"];
   const ks=kids(n.id);
