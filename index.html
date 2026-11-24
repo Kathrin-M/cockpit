@@ -431,8 +431,8 @@ function renderHome(v){
    ${tile("map","Prozess visualisieren","Die Mindmap vom Unternehmen bis zum einzelnen Schritt",all.length+" Kacheln")}
    ${tile("prot","Wöchentlicher Austausch","Protokolle, Aufgaben und nächste Schritte",prot+" Protokolle")}
    ${tile("fahrplan","Fahrplan","Meilensteine der Phase Verstehen",(()=>{const m=Object.values(extra).filter(e=>e.kind==="milestone").sort((a,b)=>a.date.localeCompare(b.date))[0];return m?"nächster: "+m.date.slice(8)+"."+m.date.slice(5,7)+". "+m.title:""})())}
-   ${tile("ist","Ist-Stand auf einen Blick","Fortschritt je Bereich und Hauptprozess",open?(all.length-open)+" von "+all.length+" ausgefüllt":"alles ausgefüllt",open?"red":"gr")}
-   ${tile("gaps","Lücken","Was noch fehlt, filterbar und als CSV",gaps+" mit Lücke",gaps?"red":"gr")}
+   ${tile("ist","Ist-Stand auf einen Blick","Fortschritt je Bereich und Hauptprozess","","")}
+   ${tile("gaps","Lücken","Was noch fehlt, filterbar und als CSV","","")}
    ${tile("eng","Engpässe","Bewerten nach Häufigkeit und Auswirkung",rated+" bewertet")}
    ${tile("dep","Abhängigkeiten und Fristen","Worauf wartet was, welche Fristen gelten",deps+" Einträge")}
    ${tile("data","Daten","Export, Import und Sicherung","")}
