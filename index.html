@@ -31,7 +31,7 @@ h1.big{font-size:40px;line-height:1.15;font-weight:800;color:var(--brand);margin
 .tiles{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:30px}
 .tile{display:flex;flex-direction:column;align-items:flex-start;justify-content:flex-start;border-radius:18px;background:var(--light);padding:22px;cursor:pointer;transition:.15s;border:0;text-align:left;font:inherit;color:inherit;width:100%}.tile:hover{box-shadow:0 6px 18px rgba(0,0,0,.1);transform:translateY(-1px)}
 .tile h3{margin:0 0 4px;font-size:20px;font-weight:800;color:var(--brand);text-transform:none;letter-spacing:0}.tile p{margin:0;color:#6b7c88;font-size:13.5px}
-.tile .st{display:inline-block;margin-top:10px;padding:2px 10px;border-radius:99px;background:#fff;color:var(--brand);font-weight:800;font-size:12px}.tile .st.red{background:var(--red);color:#fff}.tile .st.gr{background:#6ea015;color:#fff}
+.tile .st{display:inline-block;margin-top:10px;padding:2px 10px;border-radius:99px;background:#fff;color:var(--brand);font-weight:800;font-size:12px}.tile .st.red{background:#e4ecf0;color:var(--brand)}.tile .st.gr{background:#6ea015;color:#fff}
 button.btn{background:var(--brand);color:#fff;border:0;padding:8px 16px;border-radius:99px;font-weight:800;cursor:pointer;font-size:13px;font-family:inherit}
 button.btn.ghost{background:#fff;color:var(--brand);border:1px solid var(--brand)}
 button.btn.leaf{background:var(--leaf);color:#1c2b00}
@@ -41,7 +41,7 @@ button.btn:disabled{opacity:.5}
 input[type=text],input:not([type]),select,textarea{font:inherit;border:1px solid #cfdcd8;border-radius:10px;padding:6px 8px;background:#fff;color:var(--text);width:100%}
 textarea{min-height:56px;resize:vertical}
 .status{padding:14px 18px;border-radius:16px;font-weight:800;font-size:17px;color:#fff;margin-bottom:16px}
-.status.red{background:var(--red)}.status.green{background:#6ea015}.status.orange{background:var(--orange)}
+.status.red{background:var(--brand)}.status.green{background:#6ea015}.status.orange{background:var(--orange)}
 table{border-collapse:collapse;width:100%}
 th{background:var(--brand);color:#fff;text-align:left;padding:9px 10px;font-size:12px}table{border-radius:12px;overflow:hidden}
 td{padding:7px 8px;border-bottom:1px solid #e6eeeb;vertical-align:top}
@@ -60,7 +60,7 @@ tr.link{cursor:pointer}tr.link:hover{background:var(--light)}
 .node.area.red{border-color:var(--red);box-shadow:0 0 0 2px var(--red)}
 .node .t{flex:1;min-width:0;white-space:normal;overflow-wrap:break-word;hyphens:auto;line-height:1.2}.node::before{content:"";position:absolute;left:10px;right:10px;top:-2.5px;height:4px;border-radius:3px;background:var(--lc,#95C11F)}.node.company{--lc:#25384a}.node.area{--lc:#386784}.node.main{--lc:#82B0A9}.node.sub{--lc:#95C11F}.node.step{--lc:#E3B505}
 .lg{display:inline-flex;gap:4px;align-items:center;font-size:12px;color:#4a5b68;margin:0 6px}.lg i{display:inline-block;width:10px;height:10px;border-radius:50%;margin-left:8px}
-.node .ask{display:block;color:var(--red);font-weight:800;font-size:11px;margin-top:2px;opacity:1;text-transform:none;letter-spacing:0}textarea{resize:none;overflow:hidden}.askbox textarea{color:var(--red);font-weight:700;border-color:#f0b9b7;background:#fff7f6;min-height:60px}.node .lv{display:block;line-height:1.1;font-size:8.5px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;opacity:.65}.node.step{border-left-width:6px}#mapwrap{cursor:grab}.node{cursor:move}.node.dt{outline:3px dashed var(--leaf);outline-offset:2px}#mapwrap.pan{cursor:grabbing;user-select:none}
+.node .ask{display:block;color:var(--brand);font-weight:700;font-size:11px;margin-top:2px;opacity:1;text-transform:none;letter-spacing:0}textarea{resize:none;overflow:hidden}.askbox textarea{color:var(--brand);font-weight:600;border-color:#c9d8e0;background:#f4f8fa;min-height:60px}.node .lv{display:block;line-height:1.1;font-size:8.5px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;opacity:.65}.node.step{border-left-width:6px}#mapwrap{cursor:grab}.node{cursor:move}.node.dt{outline:3px dashed var(--leaf);outline-offset:2px}#mapwrap.pan{cursor:grabbing;user-select:none}
 .node .c{font-size:10.5px;font-weight:700;color:#6b7c88;white-space:nowrap}
 .node.company .c,.node.area .c{color:#d6e5ee}
 .node .tg{width:18px;height:18px;border-radius:50%;background:var(--light);color:var(--brand);text-align:center;line-height:18px;font-size:11px;flex:none}
@@ -528,7 +528,7 @@ function renderPanel(){
   const ks=kids(n.id);
   p.innerHTML=`<div class="row"><div class="crumb">${esc(path(n.id).map(x=>x.name).join(" › "))}</div><button class="btn ghost sm" data-act="close">Schließen</button></div>
   <div class="row"><input data-name value="${esc(n.name)}" style="font-weight:800;font-size:16px"></div>
-  <div class="q askbox"><label style="color:var(--red);font-weight:800">Fragen / Notizen fürs nächste Gespräch <span class="req-tag">erscheint rot an der Kachel</span></label><textarea data-ask placeholder="z. B. Wer gibt die Fensterfreigabe frei?">${esc(n.ask||"")}</textarea></div>
+  <div class="q askbox"><label style="color:var(--brand);font-weight:800">Fragen / Notizen fürs nächste Gespräch</label><textarea data-ask placeholder="z. B. Wer gibt die Fensterfreigabe frei?">${esc(n.ask||"")}</textarea></div>
   <div class="row"><span class="sm">${LV[n.level]} ${st?dotc(st):""}</span>
   ${COUNTS(n)?`<select data-status>${STATUS.map(s=>`<option value="${s[0]}" ${n.status===s[0]?"selected":""}>${s[1]}</option>`).join("")}</select>`:""}</div>
   ${COUNTS(n)&&nSug?`<div class="sug"><b>${nSug} Vorschläge aus den Excel-Listen und dem Prozessfoto</b> warten auf deine Prüfung.<br><button class="btn leaf" data-act="acceptall">Alle Vorschläge dieser Kachel übernehmen</button></div>`:""}
