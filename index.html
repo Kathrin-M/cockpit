@@ -41,7 +41,7 @@ button.btn:disabled{opacity:.5}
 input[type=text],input:not([type]),select,textarea{font:inherit;border:1px solid #cfdcd8;border-radius:10px;padding:6px 8px;background:#fff;color:var(--text);width:100%}
 textarea{min-height:56px;resize:vertical}
 .status{padding:14px 18px;border-radius:16px;font-weight:800;font-size:17px;color:#fff;margin-bottom:16px}
-.status.red{background:var(--red)}.status.green{background:#6ea015}
+.status.red{background:var(--red)}.status.green{background:#6ea015}.status.orange{background:var(--orange)}
 table{border-collapse:collapse;width:100%}
 th{background:var(--brand);color:#fff;text-align:left;padding:9px 10px;font-size:12px}table{border-radius:12px;overflow:hidden}
 td{padding:7px 8px;border-bottom:1px solid #e6eeeb;vertical-align:top}
@@ -352,7 +352,13 @@ function renderMap(v){
       else{const x1=p.x+p.w,y1=p.y+p.h/2,x2=c.x,y2=c.y+c.h/2;
       svg+=`<path d="M${x1} ${y1} C ${x1+26} ${y1}, ${x2-26} ${y2}, ${x2} ${y2}" fill="none" stroke="#b9cbc7" stroke-width="1.5"/>`}
     }}
-    const g=GAPS[id];const st=(n.level==="company"?"":g.state);
+    const g=GAPS[id];
+    // Rand: nur eigener Stand. Fehlendes = kein roter Rand (roter Punkt in der Kachel), ausgefüllt = orange, bestätigt und vollständig = grün
+    let st="";
+    if(n.level!=="company"){
+      if(COUNTS(n)){const os=ownState(n);st=os==="red"?"":(os==="green"&&g.state!=="green"?"orange":os)}
+      else st=g.state==="red"?"":g.state;
+    }
     html+=`<div class="node ${n.level} ${st} ${sel===id?"sel":""}" data-id="${id}" style="left:${p.x}px;top:${p.y}px;width:${p.w}px;height:${p.h}px" title="${esc(n.name)}">${inner(id)}</div>`;
   }
   ms.remove();
@@ -366,20 +372,21 @@ function renderIst(v){
   const rows=[];
   for(const a of kids(root.id)){
     const ms=kids(a.id);
-    if(!ms.length){rows.push(`<tr><td><b>${esc(a.name)}</b></td><td colspan="6" class="muted">Noch nicht aufgenommen</td><td>${dotc("red")}</td></tr>`);continue}
+    if(!ms.length){rows.push(`<tr><td><b>${esc(a.name)}</b></td><td colspan="6" class="muted">Noch nicht aufgenommen</td></tr>`);continue}
     ms.forEach((m,i)=>{
       const gi=GAPS[m.id],tot=gi.total+1,done=gi.done+(ownState(m)==="green"?1:0),pc=Math.round(done/tot*100),fl=gi.fill+(ownState(m)!=="red"?1:0),pf=Math.round(fl/tot*100);
-      rows.push(`<tr class="link" data-focus="${m.id}"><td>${i?"":"<b>"+esc(a.name)+"</b>"}</td><td>${esc(m.name)}</td><td>${tot}</td><td>${fl}</td><td>${done}</td><td>${tot-fl}</td><td><div class="pbar"><div style="width:${pf}%"></div></div>${pf} % ausgefüllt, ${pc} % bestätigt</td><td>${dotc(gi.state==="red"||ownState(m)==="red"?"red":gi.state)}</td></tr>`);
+      rows.push(`<tr class="link" data-focus="${m.id}"><td>${i?"":"<b>"+esc(a.name)+"</b>"}</td><td>${esc(m.name)}</td><td>${tot}</td><td>${fl}</td><td>${done}</td><td>${tot-fl}</td><td><div class="pbar"><div style="width:${pf}%"></div></div>${pf} % ausgefüllt, ${pc} % bestätigt</td></tr>`);
     });
   }
-  v.innerHTML=`<div class="status ${g.state==="green"?"green":"red"}">${g.state==="green"?"Ist-Stand validiert":"Ist-Stand noch nicht validiert: "+(g.total-g.done)+" von "+g.total+" Kacheln offen"}</div>
+  const gfill=g.fill||0,gall=g.done===g.total&&g.total>0;
+  v.innerHTML=`<div class="status ${gall?"green":gfill>0?"orange":"red"}">${gall?"Ist-Stand validiert":"Ist-Stand: "+gfill+" von "+g.total+" Kacheln ausgefüllt, "+g.done+" bestätigt"}</div>
   <p class="muted">Eine Kachel gilt als ausgefüllt, wenn alle Pflichtfragen beantwortet sind, und als bestätigt, wenn zusätzlich der Status „Bestätigt“ gesetzt ist. Bereiche ohne Hauptprozesse gelten als nicht aufgenommen.</p>
-  <table><tr><th>Bereich</th><th>Hauptprozess</th><th>Kacheln</th><th>ausgefüllt</th><th>bestätigt</th><th>mit Lücke</th><th>Fortschritt</th><th>Ampel</th></tr>${rows.join("")}</table>`;
+  <table><tr><th>Bereich</th><th>Hauptprozess</th><th>Kacheln</th><th>ausgefüllt</th><th>bestätigt</th><th>mit Lücke</th><th>Fortschritt</th></tr>${rows.join("")}</table>`;
 }
 function gapRows(){
   const out=[];
   Object.values(nodes).filter(COUNTS).forEach(n=>{
-    if(ownState(n)==="green")return;
+    if(ownState(n)!=="red")return;
     out.push({id:n.id,path:pathStr(n.id),area:areaOf(n.id),miss:missing(n).map(k=>QS[k][0]),status:(STATUS.find(s=>s[0]===n.status)||[])[1],wer:(n.q.q7||n.q.q4||"").trim()});
   });
   return out.sort((a,b)=>a.path.localeCompare(b.path));
@@ -411,7 +418,7 @@ function treeOrder(){const o=[];const w=id=>{o.push(nodes[id]);kids(id).forEach(
 function renderHome(v){
   sel=null;$("#panel").classList.remove("open");
   const all=Object.values(nodes).filter(COUNTS),done=all.filter(n=>ownState(n)==="green").length;
-  const pc=Math.round(done/Math.max(all.length,1)*100),open=all.length-done;
+  const pc=Math.round(all.filter(n=>ownState(n)!=="red").length/Math.max(all.length,1)*100),open=all.length-all.filter(n=>ownState(n)!=="red").length;
   const sugN=all.filter(n=>openSugCount(n)>0).length,rated=all.filter(n=>n.h&&n.a).length;
   const gaps=gapRows().length,prot=Object.values(extra).filter(e=>e.kind==="protocol").length,ideas=Object.values(extra).filter(e=>e.kind==="idea").length;
   const deps=Object.values(nodes).filter(n=>(n.deps||[]).length||(n.fristen||[]).length).length;
@@ -419,12 +426,12 @@ function renderHome(v){
   const tile=(t,h,p,st,cls)=>`<button class="tile" data-tab="${t}"><h3>${h}</h3>${st&&cls?`<span class="st ${cls}">${st}</span>`:""}</button>`;
   v.innerHTML=`<h1 class="big">Von Strategie zu funktionierender Organisation</h1>
   <div style="display:flex;justify-content:center;margin-top:26px"><div class="ph off" style="max-width:380px;width:100%"><small>PHASE 0</small><h3>Ausrichten</h3><p>Wo wollen wir hin und wie wollen wir arbeiten?</p></div></div>
-  <div class="phases">${PH.map((x,i)=>`${i?'<span class="ar">→</span>':""}<div class="ph ${i?"off":"on"}" ${i?"":'data-tab="start"'}><small>PHASE ${i+1}</small><h3>${x[0]}</h3><p>${x[1]}</p>${i?'<p style="font-weight:800;font-size:12px">Kommt bald</p>':`<div class="pbar" style="margin-top:12px"><div style="width:${pc}%"></div></div><p style="font-size:12px">${pc}% bestätigt</p>`}</div>`).join("")}</div>
+  <div class="phases">${PH.map((x,i)=>`${i?'<span class="ar">→</span>':""}<div class="ph ${i?"off":"on"}" ${i?"":'data-tab="start"'}><small>PHASE ${i+1}</small><h3>${x[0]}</h3><p>${x[1]}</p>${i?'<p style="font-weight:800;font-size:12px">Kommt bald</p>':`<div class="pbar" style="margin-top:12px"><div style="width:${pc}%"></div></div><p style="font-size:12px">${pc}% ausgefüllt</p>`}</div>`).join("")}</div>
   <div class="tiles">
    ${tile("map","Prozess visualisieren","Die Mindmap vom Unternehmen bis zum einzelnen Schritt",all.length+" Kacheln")}
    ${tile("prot","Wöchentlicher Austausch","Protokolle, Aufgaben und nächste Schritte",prot+" Protokolle")}
    ${tile("fahrplan","Fahrplan","Meilensteine der Phase Verstehen",(()=>{const m=Object.values(extra).filter(e=>e.kind==="milestone").sort((a,b)=>a.date.localeCompare(b.date))[0];return m?"nächster: "+m.date.slice(8)+"."+m.date.slice(5,7)+". "+m.title:""})())}
-   ${tile("ist","Ist-Stand auf einen Blick","Fortschritt je Bereich und Hauptprozess",open?open+" offen":"validiert",open?"red":"gr")}
+   ${tile("ist","Ist-Stand auf einen Blick","Fortschritt je Bereich und Hauptprozess",open?(all.length-open)+" von "+all.length+" ausgefüllt":"alles ausgefüllt",open?"red":"gr")}
    ${tile("gaps","Lücken","Was noch fehlt, filterbar und als CSV",gaps+" mit Lücke",gaps?"red":"gr")}
    ${tile("eng","Engpässe","Bewerten nach Häufigkeit und Auswirkung",rated+" bewertet")}
    ${tile("dep","Abhängigkeiten und Fristen","Worauf wartet was, welche Fristen gelten",deps+" Einträge")}
@@ -440,14 +447,14 @@ function renderStart(v){
   const withSug=treeOrder().find(n=>COUNTS(n)&&openSugCount(n)>0);
   const T=(h,rows)=>`<table><tr>${h.map(x=>`<th>${x}</th>`).join("")}</tr>${rows.map(r=>`<tr>${r.map(x=>`<td>${x}</td>`).join("")}</tr>`).join("")}</table>`;
   const GOAL=new Date(2026,11,2);const today=new Date();today.setHours(0,0,0,0);
-  const days=Math.round((GOAL-today)/86400000);const pcs=Math.round(done/Math.max(all.length,1)*100);
+  const days=Math.round((GOAL-today)/86400000);const filledN=all.filter(n=>ownState(n)!=="red").length,pcs=Math.round(filledN/Math.max(all.length,1)*100),pcb=Math.round(done/Math.max(all.length,1)*100);
   const box=(h,t)=>`<div style="margin-top:16px;border-left:4px solid var(--leaf);padding-left:12px"><div style="font-size:11px;font-weight:800;letter-spacing:.2em;color:var(--leaf)">${h}</div><div style="margin-top:3px">${t}</div></div>`;
   v.innerHTML=`<div style="font-size:11px;font-weight:800;letter-spacing:.2em;color:var(--leaf)">PHASE 1</div>
   <h1 class="pt" style="margin:2px 0">Verstehen</h1><p class="muted" style="margin-top:0">Wie funktioniert das Unternehmen heute wirklich?</p>
   <div class="grid3">
    <div class="ph on" style="cursor:default"><small>ZIEL</small><h3>Prozess steht</h3><p>bis 02.12.2026</p></div>
    <div class="ph"><small>VERBLEIBEND</small><h3 style="font-size:34px">${Math.max(0,days)}</h3><p>${days<0?"Termin überschritten":"Tage"}</p></div>
-   <div class="ph"><small>FORTSCHRITT</small><h3 style="font-size:34px">${pcs} %</h3><div class="pbar" style="margin-top:6px"><div style="width:${pcs}%"></div></div><p style="font-size:12px">der Prozesspunkte erledigt</p></div>
+   <div class="ph"><small>FORTSCHRITT</small><h3 style="font-size:34px">${pcs} %</h3><div class="pbar" style="margin-top:6px"><div style="width:${pcs}%"></div></div><p style="font-size:12px">der Prozesspunkte ausgefüllt, ${pcb} % bestätigt</p></div>
   </div>
   <div class="card" style="max-width:900px;margin-top:6px;line-height:1.6">
    <p style="margin-top:0">Hier wird bewusst noch nichts optimiert. Erst beobachten, zuhören und aufschreiben, dann verstehen und erst danach verändern. Das meiste Wissen steckt in den Köpfen der Mitarbeitenden und steht in keinem Handbuch.</p>
@@ -491,9 +498,9 @@ function renderSoll(v){
   const all=Object.values(nodes).filter(COUNTS);const done=all.filter(n=>ownState(n)==="green").length;
   const rated=all.filter(n=>n.h&&n.a).sort((a,b)=>b.h*b.a-a.h*a.a);
   const pil=all.filter(n=>n.pilot);const au=all.filter(n=>n.auto&&n.auto!=="nein");
-  const pc=Math.round(done/Math.max(all.length,1)*100);
+  const fillW=all.filter(n=>ownState(n)!=="red").length,pc=Math.round(done/Math.max(all.length,1)*100),pfw=Math.round(fillW/Math.max(all.length,1)*100);
   v.innerHTML=`<p class="muted" style="max-width:760px">Der Weg vom Ist zur Automation. Jeder Schritt baut auf dem vorherigen auf. Die Zahlen stammen aus den Eintragungen im Cockpit.</p>
-  <div class="card"><b>1 Verstehen: Ist-Stand bestätigen</b> <span class="muted">(Phase 1)</span><div class="pbar" style="margin:6px 0"><div style="width:${pc}%"></div></div>${done} von ${all.length} Kacheln vollständig (${pc} %). Abschluss, wenn alle bestätigt sind und die Engpassliste steht.</div>
+  <div class="card"><b>1 Verstehen: Ist-Stand bestätigen</b> <span class="muted">(Phase 1)</span><div class="pbar" style="margin:6px 0"><div style="width:${pfw}%"></div></div>${fillW} von ${all.length} Kacheln ausgefüllt (${pfw} %), davon ${done} bestätigt (${pc} %). Abschluss, wenn alle bestätigt sind und die Engpassliste steht.</div>
   <div class="card"><b>2 Engpässe bewerten</b> <span class="muted">(Ende Phase 1)</span><br>${rated.length} bewertet. Die höchsten:<table>${rated.slice(0,5).map(n=>`<tr class="link" data-focus="${n.id}"><td style="font-weight:800">${n.h*n.a}</td><td>${esc(pathStr(n.id))}</td><td>${esc(n.q.q6||"")}</td></tr>`).join("")||'<tr><td class="muted">Noch nichts bewertet (in der Detailansicht der Kachel).</td></tr>'}</table></div>
   <div class="card"><b>3 Pilotprozesse wählen</b> <span class="muted">(Strukturieren, Schritt 1)</span><br>Ein bis drei Prozesse nach Schmerz und Hebel. In der Detailansicht „Pilotprozess“ anhaken.<table>${pil.map(n=>`<tr class="link" data-focus="${n.id}"><td>${esc(pathStr(n.id))}</td><td>${esc(n.soll||"")}</td></tr>`).join("")||'<tr><td class="muted">Noch keine gewählt.</td></tr>'}</table></div>
   <div class="card"><b>4 Soll entwerfen</b> <span class="muted">(Strukturieren, Schritt 2)</span><br>Je Pilotprozess: Auslöser, Schritte, Verantwortliche, Übergaben, Fristen, Checklisten, Dokumente, Ergebnis. In der Detailansicht steht dafür das Feld „Soll-Änderung“. Ein eigener Soll-Editor (Kopie des Ist-Prozesses) ist noch nicht gebaut.</div>
