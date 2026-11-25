@@ -402,13 +402,9 @@ function renderGaps(v){
   <table><tr><th>Pfad</th><th>Fehlende Pflichtfragen</th><th>Status</th><th>Wer</th></tr>${rows.map(r=>`<tr class="link" data-focus="${r.id}"><td>${esc(r.path)}</td><td>${r.miss.map(m=>`<span class="chip">${esc(m)}</span>`).join("")||'<span class="muted">alles ausgefüllt, noch nicht bestätigt</span>'}</td><td>${esc(r.status)}</td><td>${esc(r.wer)}</td></tr>`).join("")}</table>`;
 }
 function renderEng(v){
-  const rated=Object.values(nodes).filter(n=>n.h&&n.a).sort((a,b)=>b.h*b.a-a.h*a.a);
   const keinEng=s=>/^(laut [\wäöüß ]+ )?(hakt (aktuell |hier |momentan |heute )?(es )?(hier )?(an )?nichts|kein(e|en)? (engpass|engpässe)( genannt)?|aktuell kein(e)? (engpass|engpässe)( genannt)?|es gibt (aktuell |heute )?kein(e|en)? (engpass|engpässe))\.?$/i.test(String(s).trim().replace(/\s+/g," "))||/^kein/i.test(String(s).trim());
-  const open=Object.values(nodes).filter(n=>!(n.h&&n.a)&&(n.q.q6||"").trim()&&!keinEng(n.q.q6)&&!isNA(n.q.q6));
-  const col=s=>s>=6?"#D9534F":s>=3?"#F4B183":"#FFE699";
-  v.innerHTML=`<p class="muted">Bewertung in der Detailansicht der Kachel: Häufigkeit × Auswirkung (1–3). Score 6–9 rot.</p>
-  <h3>Bewertet (nach Score)</h3><table><tr><th>Score</th><th>Pfad</th><th>Wo hakt es</th><th>H</th><th>A</th></tr>${rated.map(n=>`<tr class="link" data-focus="${n.id}"><td style="background:${col(n.h*n.a)};font-weight:800">${n.h*n.a}</td><td>${esc(pathStr(n.id))}</td><td>${esc(n.q.q6||"")}</td><td>${n.h}</td><td>${n.a}</td></tr>`).join("")||'<tr><td colspan="5" class="muted">Noch nichts bewertet.</td></tr>'}</table>
-  <h3>Noch nicht bewertet (Engpass beschrieben)</h3><table><tr><th>Pfad</th><th>Wo hakt es</th></tr>${open.map(n=>`<tr class="link" data-focus="${n.id}"><td>${esc(pathStr(n.id))}</td><td>${esc(n.q.q6)}</td></tr>`).join("")||'<tr><td colspan="2" class="muted">Keine.</td></tr>'}</table>`;
+  const list=treeOrder().filter(n=>COUNTS(n)&&(n.q.q6||"").trim()&&!keinEng(n.q.q6)&&!isNA(n.q.q6));
+  v.innerHTML=`<table class="engt"><tr><th style="width:24%">Prozess</th><th style="width:38%">Wo hakt es (Ist)</th><th style="width:38%">Lösungsansatz (Soll)</th></tr>${list.map(n=>`<tr><td class="link" data-focus="${n.id}">${esc(pathStr(n.id))}</td><td>${esc(n.q.q6)}</td><td><textarea data-engsoll="${n.id}" rows="3" style="width:100%" placeholder="Lösungsansatz…">${esc(n.soll||"")}</textarea></td></tr>`).join("")||'<tr><td colspan="3" class="muted">Keine Engpässe erfasst.</td></tr>'}</table>`;
 }
 function renderDep(v){
   const list=Object.values(nodes).filter(n=>(n.deps||[]).length||(n.fristen||[]).length);
@@ -530,6 +526,7 @@ function renderPanel(){
   p.innerHTML=`<div class="row"><div class="crumb">${esc(path(n.id).map(x=>x.name).join(" › "))}</div><button class="btn ghost sm" data-act="close">Schließen</button></div>
   <div class="row"><input data-name value="${esc(n.name)}" style="font-weight:800;font-size:16px"></div>
   <div class="q askbox"><label style="color:var(--brand);font-weight:800">Fragen / Notizen fürs nächste Gespräch</label><textarea data-ask placeholder="z. B. Wer gibt die Fensterfreigabe frei?">${esc(n.ask||"")}</textarea></div>
+  <div class="q askbox"><label style="color:var(--brand);font-weight:800">Soll-Idee (so könnte es künftig sein, für die Phase Strukturieren)</label><textarea data-soll placeholder="Lösungsideen hier ablegen, nicht bei „Wo hakt es“">${esc(n.soll||"")}</textarea></div>
   <div class="row"><span class="sm">${LV[n.level]} ${st?dotc(st):""}</span>
   ${COUNTS(n)?`<select data-status>${STATUS.map(s=>`<option value="${s[0]}" ${n.status===s[0]?"selected":""}>${s[1]}</option>`).join("")}</select>`:""}</div>
   ${COUNTS(n)&&nSug?`<div class="sug"><b>${nSug} Vorschläge aus den Excel-Listen und dem Prozessfoto</b> warten auf deine Prüfung.<br><button class="btn leaf" data-act="acceptall">Alle Vorschläge dieser Kachel übernehmen</button></div>`:""}
@@ -688,6 +685,7 @@ document.addEventListener("input",e=>{
   if(t.id==="q"){search=t.value;renderPage();const x=$("#q");x.focus();x.setSelectionRange(search.length,search.length);return}
   if(t.id==="gWer"){gapWer=t.value;renderGaps($("#view"));const x=$("#gWer");x.focus();x.setSelectionRange(gapWer.length,gapWer.length);return}
   if(t.dataset.pf){const e=extra[t.dataset.pid];e[t.dataset.pf]=t.value;saveExtra(e);return}
+  if(t.dataset.engsoll){const m=nodes[t.dataset.engsoll];if(m){m.soll=t.value;save(m)}return}
   if(!n||!$("#panel").contains(t))return;
   if(t.dataset.q){n.q[t.dataset.q]=t.value;save(n);later()}
   else if("src" in t.dataset){n.src=t.value;save(n)}
